@@ -1,0 +1,22 @@
+# 含真实 Token，绝不提交（用 .mcp.json.example 作模板）
+.mcp.json
+
+# 每次研究的产出（含可能的当事人信息），默认不入库；如需分享样例，单独挑选
+research/*/
+!research/.gitkeep
+
+# Node（Word 渲染依赖，由 package.json / package-lock.json 复现）
+node_modules/
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+
+# 系统/编辑器
+.DS_Store
+*.swp
+.idea/
+.vscode/

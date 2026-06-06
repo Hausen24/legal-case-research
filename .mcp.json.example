@@ -1,0 +1,48 @@
+{
+  "_说明": "把本文件复制为 .mcp.json，并把所有 Bearer 后的「你的Token」替换为法宝控制台生成的真实 Token（一套 Token 可用于已订阅的全部服务）。.mcp.json 含真实 Token、已被 .gitignore，请勿提交。case-* 三个服务是两套工作流的必备项；law-* 三个法规服务供证券技能 securities-misrep-research 的裁判依据核对使用，未订阅者删掉对应条目即可，该步会自动跳过、不影响主流程。改动后需重启 Claude Code（或 /mcp 里 Disable/Enable）才会加载。",
+
+  "mcpServers": {
+    "pkulaw-case-keyword": {
+      "type": "http",
+      "url": "https://apim-gateway.pkulaw.com/mcp-case",
+      "headers": {
+        "Authorization": "Bearer 你的Token"
+      }
+    },
+    "pkulaw-case-semantic": {
+      "type": "http",
+      "url": "https://apim-gateway.pkulaw.com/mcp-case-search-service",
+      "headers": {
+        "Authorization": "Bearer 你的Token"
+      }
+    },
+    "pkulaw-case-number": {
+      "type": "http",
+      "url": "https://apim-gateway.pkulaw.com/case_number_recognition",
+      "headers": {
+        "Authorization": "Bearer 你的Token"
+      }
+    },
+    "pkulaw-law-keyword": {
+      "type": "http",
+      "url": "https://apim-gateway.pkulaw.com/mcp-law",
+      "headers": {
+        "Authorization": "Bearer 你的Token"
+      }
+    },
+    "pkulaw-law-semantic": {
+      "type": "http",
+      "url": "https://apim-gateway.pkulaw.com/mcp-law-search-service",
+      "headers": {
+        "Authorization": "Bearer 你的Token"
+      }
+    },
+    "pkulaw-law-item": {
+      "type": "http",
+      "url": "https://apim-gateway.pkulaw.com/mcp-fatiao",
+      "headers": {
+        "Authorization": "Bearer 你的Token"
+      }
+    }
+  }
+}

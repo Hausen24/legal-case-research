@@ -1,0 +1,8 @@
+# 类案检索与分析工作流 —— Python 依赖
+# 安装：pip install -r requirements.txt
+openpyxl>=3.1        # Excel 长表生成
+matplotlib>=3.7      # 图表（chart_theme）
+numpy>=1.24          # 统计闸门（stats_guard）
+scipy>=1.10          # 卡方/Fisher 等关联检验（stats_guard；缺失时自动降级为仅描述性）
+python-docx>=1.1     # 供既有脚本（如 download_fulltext --docx 导出原文）使用
+# 说明：报告 .docx 由 Node 渲染器 render_report.mjs（docx 库）生成，见 package.json。

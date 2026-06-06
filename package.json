@@ -1,0 +1,13 @@
+{
+  "name": "case-research",
+  "version": "1.0.0",
+  "private": true,
+  "description": "类案检索与分析工作流（北大法宝 MCP × Claude Code）—— Word 渲染依赖",
+  "type": "module",
+  "engines": {
+    "node": ">=18"
+  },
+  "dependencies": {
+    "docx": "^9.6.1"
+  }
+}
