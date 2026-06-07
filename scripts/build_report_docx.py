@@ -19,12 +19,36 @@ def load_chart_manifest(research_dir):
         return json.load(open(p, encoding="utf-8"))
     return {}
 
-def col_widths(ncol):
+def _cell_text(cell):
+    """从单元格（字符串或行内 runs 数组）取纯文本，用于表头识别。"""
+    if isinstance(cell, str):
+        return cell
+    return "".join(r.get("t", "") for r in (cell or []))
+
+# 窄首列触发词：序号/编号类，给固定窄宽，其余内容列均分
+_NARROW_FIRST = {"序号", "序", "编号", "编码", "no", "no.", "#", "项次", "排序"}
+
+def col_widths(header):
+    """表头感知的列宽分配：
+    - 序号/编号类首列 → 窄固定列（约 1cm），其余内容列均分；
+    - 标签型首列（如"争议焦点"）→ 适中份额，其余内容列均分；
+    - 末列吸收取整余数，保证合计精确等于正文宽，避免错位。
+    兼容旧调用：传入整数列数时按标签型处理。
+    """
+    if isinstance(header, int):
+        ncol, first_txt = header, ""
+    else:
+        ncol, first_txt = len(header), _cell_text(header[0]).strip().lower()
     if ncol <= 1:
         return [CONTENT_W]
-    first = int(CONTENT_W * 0.18)
+    if first_txt in _NARROW_FIRST:
+        first = 620                         # ~1.1cm，容纳两位序号
+    else:
+        first = int(CONTENT_W * 0.18)       # 标签型首列
     rest = (CONTENT_W - first) // (ncol - 1)
-    return [first] + [rest] * (ncol - 1)
+    widths = [first] + [rest] * (ncol - 1)
+    widths[-1] += CONTENT_W - sum(widths)   # 末列吸收余数，精确填满
+    return widths
 
 class FN:
     """脚注编号与内容管理（文档顺序分配序号）。
@@ -131,13 +155,14 @@ def parse(md, manifest):
             blocks.append({"type": "bullet", "runs": parse_inline(re.sub(r'^[-*]\s+', '', s), fn)})
             j += 1
         elif s.startswith("|") and j + 1 < len(body) and re.match(r'^\|[\s:|-]+\|', body[j+1].strip()):
-            header = [c.strip() for c in s.strip("|").split("|")]
+            header = [parse_inline(c.strip(), fn) for c in s.strip("|").split("|")]
             j += 2; rows = []
             while j < len(body) and body[j].strip().startswith("|"):
-                rows.append([c.strip() for c in body[j].strip().strip("|").split("|")])
+                rows.append([parse_inline(c.strip(), fn)
+                             for c in body[j].strip().strip("|").split("|")])
                 j += 1
             blocks.append({"type": "table", "header": header, "rows": rows,
-                           "widths": col_widths(len(header))})
+                           "widths": col_widths(header)})
         else:
             blocks.append({"type": "p", "runs": parse_inline(s, fn)})
             j += 1

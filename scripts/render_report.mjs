@@ -10,7 +10,7 @@ import {
   Document, Packer, Paragraph, TextRun, Table, TableRow, TableCell, ImageRun,
   Header, Footer, AlignmentType, HeadingLevel, BorderStyle, WidthType, ShadingType,
   VerticalAlign, PageNumber, PageBreak, TableOfContents, FootnoteReferenceRun,
-  ExternalHyperlink, LevelFormat, SectionType
+  ExternalHyperlink, LevelFormat, SectionType, TableLayoutType
 } from "docx";
 
 const [,, modelPath, outPath] = process.argv;
@@ -63,19 +63,31 @@ function image(block){
       children:[new TextRun({text:block.caption||"", font:BODY, size:18, color:GRAY})]})
   ];
 }
+// 单元格内容：支持纯字符串（向后兼容）或行内 runs（含 [文字](链接) 转脚注、**加粗**）
+function cellChildren(cell, head){
+  const arr = Array.isArray(cell) ? cell : [{t:String(cell)}];
+  const out=[];
+  for(const r of arr){
+    if(r.t!==undefined && r.t!=="")
+      out.push(new TextRun({text:String(r.t), font:BODY, size:head?18:17,
+        bold: head|| !!r.b, color: head?"FFFFFF":(r.color||"222222")}));
+    if(r.fn!==undefined) out.push(new FootnoteReferenceRun(r.fn));
+  }
+  return out.length?out:[new TextRun({text:"", font:BODY, size:head?18:17})];
+}
 function table(block){
   const widths=block.widths;
-  const mk=(txt,ci,head,band)=> new TableCell({width:{size:widths[ci],type:WidthType.DXA},
+  const mk=(cell,ci,head,band)=> new TableCell({width:{size:widths[ci],type:WidthType.DXA},
     margins:{top:70,bottom:70,left:110,right:110},
     shading: head?{fill:NAVY,type:ShadingType.CLEAR}:(band?{fill:"EEF1F6",type:ShadingType.CLEAR}:undefined),
     borders:{top:{style:BorderStyle.SINGLE,size:2,color:LINE},bottom:{style:BorderStyle.SINGLE,size:2,color:LINE},
              left:{style:BorderStyle.SINGLE,size:2,color:LINE},right:{style:BorderStyle.SINGLE,size:2,color:LINE}},
     children:[new Paragraph({alignment: ci===0?AlignmentType.CENTER:AlignmentType.LEFT, spacing:{line:240},
-      children:[new TextRun({text:String(txt), font:BODY, size:head?18:17, bold:!!head,
-        color: head?"FFFFFF":"222222"})]})]});
+      children: cellChildren(cell, head)})]});
   const rows=[ new TableRow({tableHeader:true, children:block.header.map((h,ci)=>mk(h,ci,true,false))}) ];
   block.rows.forEach((r,ri)=> rows.push(new TableRow({children:r.map((c,ci)=>mk(c,ci,false,ri%2===0))})));
-  return new Table({width:{size:widths.reduce((a,b)=>a+b,0),type:WidthType.DXA}, columnWidths:widths, rows});
+  return new Table({width:{size:widths.reduce((a,b)=>a+b,0),type:WidthType.DXA},
+    columnWidths:widths, layout:TableLayoutType.FIXED, rows});
 }
 
 // ---- 正文块 ----
