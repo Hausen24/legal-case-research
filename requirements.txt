@@ -1,5 +1,6 @@
 # 类案检索与分析工作流 —— Python 依赖
 # 安装：pip install -r requirements.txt
+pandas>=2.0          # Excel 生成（DataFrame 写表）
 openpyxl>=3.1        # Excel 长表生成
 matplotlib>=3.7      # 图表（chart_theme）
 numpy>=1.24          # 统计闸门（stats_guard）
