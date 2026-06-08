@@ -1,0 +1,20 @@
+{
+ "overview": {
+  "path": "examples/demo_算法推荐短视频侵权/output/_charts/overview.png",
+  "w": 540,
+  "h": 372,
+  "caption": "图 1　样本概览：法院层级、地域、年份与裁判结果分布（N=6）"
+ },
+ "issue_freq": {
+  "path": "examples/demo_算法推荐短视频侵权/output/_charts/issue_freq.png",
+  "w": 540,
+  "h": 321,
+  "caption": "图 2　各争议焦点在样本中的出现频次"
+ },
+ "result_year": {
+  "path": "examples/demo_算法推荐短视频侵权/output/_charts/result_year.png",
+  "w": 520,
+  "h": 260,
+  "caption": "图 3　裁判结果年度演进（N=6）"
+ }
+}

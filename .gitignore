@@ -8,6 +8,9 @@ research/*/
 # Node（Word 渲染依赖，由 package.json / package-lock.json 复现）
 node_modules/
 
+# Word 渲染中间产物（每次 build_report_docx 重新生成）
+**/_report_model.json
+
 # Python
 __pycache__/
 *.py[cod]

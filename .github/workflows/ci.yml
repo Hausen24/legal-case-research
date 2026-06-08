@@ -1,0 +1,38 @@
+name: CI
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: [ "3.11", "3.12" ]
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt pytest
+
+      - name: Run unit & pipeline tests
+        run: python -m pytest -q
+
+      - name: End-to-end smoke (demo fixture, no MCP token needed)
+        run: |
+          python examples/build_demo_fixture.py
+          python scripts/general/normalize_cases.py "examples/demo_算法推荐短视频侵权"
+          python scripts/general/run_analytics.py "examples/demo_算法推荐短视频侵权"
+          python scripts/general/generate_excel.py "examples/demo_算法推荐短视频侵权"
+
+      - name: Anti-hallucination verification (must pass)
+        run: python scripts/verify_report.py "examples/demo_算法推荐短视频侵权"

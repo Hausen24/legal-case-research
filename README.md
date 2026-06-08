@@ -1,5 +1,11 @@
 # 类案研究工作流（北大法宝 MCP × Claude Code）
 
+[![CI](https://github.com/Hausen24/legal-case-research/actions/workflows/ci.yml/badge.svg)](https://github.com/Hausen24/legal-case-research/actions/workflows/ci.yml)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+![Python 3.11+](https://img.shields.io/badge/Python-3.11+-blue.svg)
+
+> **A reproducible legal case-research workflow** that turns a fact pattern + search brief into a citation-checked, chart-rich Word report and an Excel case list — driven by the Peking University Law (北大法宝) MCP server and Claude Code, with sample-size-adaptive statistics and machine-verified anti-hallucination.
+
 把一段案情 + 检索要求，自动跑成「类案分析报告 + Excel 清单」。本项目内置两套工作流：
 
 | 技能 | 适用 | 去重逻辑 | 分析口径 | 产出 |
@@ -8,6 +14,33 @@
 | **securities-misrep-research**（证券虚假陈述专题） | 京沪金融法院等证券虚假陈述责任纠纷 | 按"公司+事件"分组、组内留核心判决，平行判决仅留痕 | 固定五维 14 问体系逐问梳理 + 京沪比较 | 投研级比较研究报告 + 核心判决清单 Excel |
 
 两套共用同一份 `.mcp.json`、`CLAUDE.md`，以及 `scripts/build_report_docx.py`（渲染）、`scripts/chart_theme.py`（图表主题）、`scripts/common/stats_guard.py`（样本自适应闸门）、`scripts/common/pkulaw_utils.py`（公共派生）等共用层。
+
+---
+
+## 看一眼产出（Demo，无需法宝 Token）
+
+北大法宝是订阅制，但你**不需要 Token 也能跑通整条管道、看到真实产出形态**——仓库自带一份[脱敏演示样本](examples/)（案号、当事人、裁判内容均为虚构，见 [DISCLAIMER](examples/DISCLAIMER.md)）。
+
+```bash
+pip install -r requirements.txt && npm install
+python3 examples/build_demo_fixture.py                                   # 合成演示数据
+python3 scripts/general/normalize_cases.py "examples/demo_算法推荐短视频侵权"
+python3 scripts/general/run_analytics.py   "examples/demo_算法推荐短视频侵权"   # 统计 + 出图
+python3 scripts/general/generate_excel.py  "examples/demo_算法推荐短视频侵权"
+python3 scripts/build_report_docx.py "examples/demo_算法推荐短视频侵权" 类案分析报告_居中.md
+python3 scripts/verify_report.py "examples/demo_算法推荐短视频侵权"          # 反幻觉校验
+```
+
+产出（点开即看）：[📄 报告 Markdown](examples/demo_算法推荐短视频侵权/output/类案分析报告_居中.md) · [📝 报告 Word](examples/demo_算法推荐短视频侵权/output/类案分析报告_居中.docx) · [📊 案件清单 Excel](examples/demo_算法推荐短视频侵权/output/案件清单.xlsx)
+
+统一主题、样本量自适应的图表（由 `chart_theme` + `run_analytics` 自动生成）：
+
+| 样本概览 | 争点频次 | 裁判结果年度演进 |
+|---|---|---|
+| ![样本概览](examples/demo_算法推荐短视频侵权/output/_charts/overview.png) | ![争点频次](examples/demo_算法推荐短视频侵权/output/_charts/issue_freq.png) | ![年度演进](examples/demo_算法推荐短视频侵权/output/_charts/result_year.png) |
+
+> 上图样本仅 6 件 → 工作流自动判定为「定性深挖档 / 仅描述性统计 / 不作地域分歧推断」，
+> 报告措辞相应收敛为"示裁判取向、不作占比定论"——这正是 `stats_guard` 闸门的作用。
 
 ---
 
@@ -91,6 +124,17 @@ research/<主题>_<日期>/output/
 - **只有普通案例（CaseGrade=07）有完整判决书要素**，进分析管道；经典/评析案例进 Excel 第二个 sheet「权威案例附录」。
 - **关键词铁律**：案由词放 title，方法论词放 fulltext（否则会命中评析文章而非判决书）。
 - **反幻觉**：所有案件来自 MCP，引用必带案号+法院+pkulaw 链接，不凭记忆编造。
+
+## 可靠性与可复现
+
+- **反幻觉是被机器证明的，不只是写在纪律里。** `scripts/verify_report.py` 扫描最终报告中的每一个案号，逐一比对本次检索样本池（`03_raw_cases.json`），凡引用了样本池中不存在的案号即报错、非零退出。**把"我们承诺不编案号"升级为"机器证明每个引用都可溯源"。** 收尾自检与 CI 都会跑它。
+  ```bash
+  python3 scripts/verify_report.py <research_dir>   # 全部命中→通过；有疑似编造→FAIL
+  ```
+- **自动化测试 + CI。** `tests/` 下的 pytest 覆盖公共派生、样本量自适应闸门（含"小样本不作分歧推断"的回归保护）、Excel 实质列非空、以及反幻觉校验的正反用例；GitHub Actions 每次推送/PR 跑全套测试 + 演示管道冒烟 + 反幻觉校验（见徽章）。
+  ```bash
+  pip install -r requirements.txt pytest && python3 -m pytest
+  ```
 
 ## 调整工作流
 
