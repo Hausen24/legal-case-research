@@ -8,6 +8,7 @@ import pytest
 
 REPO = Path(__file__).resolve().parent.parent
 DEMO = REPO / "examples" / "demo_算法推荐短视频侵权"
+DEMO_SEC = REPO / "examples" / "demo_证券虚假陈述集团诉讼"
 
 # 让测试能直接 import 脚本里的纯函数
 sys.path.insert(0, str(REPO / "scripts"))
@@ -21,6 +22,16 @@ def demo_copy(tmp_path):
     dst.mkdir()
     for name in ("03_raw_cases.json", "04_screened_cases.json", "05_enriched_cases.json"):
         shutil.copy(DEMO / name, dst / name)
+    return dst
+
+
+@pytest.fixture
+def demo_sec_copy(tmp_path):
+    """把证券集团诉讼演示目录的输入态拷到 tmp_path，返回该副本路径。"""
+    dst = tmp_path / "demo_sec"
+    dst.mkdir()
+    for name in ("03_raw_cases.json", "04_screened_cases.json", "05_enriched_cases.json"):
+        shutil.copy(DEMO_SEC / name, dst / name)
     return dst
 
 

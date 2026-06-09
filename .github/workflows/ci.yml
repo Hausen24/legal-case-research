@@ -27,12 +27,21 @@ jobs:
       - name: Run unit & pipeline tests
         run: python -m pytest -q
 
-      - name: End-to-end smoke (demo fixture, no MCP token needed)
+      - name: Smoke A — standard case-research demo (no MCP token needed)
         run: |
           python examples/build_demo_fixture.py
           python scripts/general/normalize_cases.py "examples/demo_算法推荐短视频侵权"
           python scripts/general/run_analytics.py "examples/demo_算法推荐短视频侵权"
-          python scripts/general/generate_excel.py "examples/demo_算法推荐短视频侵权"
+          python scripts/general/generate_excel.py "examples/demo_算法推荐短视频侵权" --name "短视频侵权案件" --date 20260607
+          python scripts/verify_report.py "examples/demo_算法推荐短视频侵权"
 
-      - name: Anti-hallucination verification (must pass)
-        run: python scripts/verify_report.py "examples/demo_算法推荐短视频侵权"
+      - name: Smoke B — group-litigation (securities) demo
+        run: |
+          python examples/build_demo_secmisrep.py
+          python scripts/securities/normalize_secmisrep.py "examples/demo_证券虚假陈述集团诉讼"
+          python scripts/securities/run_analytics_secmisrep.py "examples/demo_证券虚假陈述集团诉讼"
+          python scripts/securities/generate_excel_secmisrep.py "examples/demo_证券虚假陈述集团诉讼" --name "证券虚假陈述案件" --date 20260609
+          python scripts/verify_report.py "examples/demo_证券虚假陈述集团诉讼"
+
+      - name: Smoke C — bring-your-own-data import
+        run: python scripts/general/import_cases.py /tmp/byod --json examples/byod_sample.json

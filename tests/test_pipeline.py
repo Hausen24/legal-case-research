@@ -40,6 +40,17 @@ def test_normalize_derives_norm_fields(repo, demo_copy):
         assert norm.get("案由") == "侵害作品信息网络传播权纠纷"
 
 
+def test_securities_group_litigation_pipeline(repo, demo_sec_copy):
+    """集团诉讼（证券示例）管道：normalize→analytics，断言核心机制与样本闸门。"""
+    run(repo, "scripts/securities/normalize_secmisrep.py", str(demo_sec_copy))
+    run(repo, "scripts/securities/run_analytics_secmisrep.py", str(demo_sec_copy))
+    a = json.loads((demo_sec_copy / "06_analytics.json").read_text(encoding="utf-8"))
+    assert a["N"] == 7 and a["独立事件数"] == 7
+    assert a["深度档"]["mode"] == "qualitative_deep"
+    # 上海5/北京2 → 任一组<5 → 不报告地域分歧（核心方法论保护）
+    assert a["地域分歧"]["report"] is False
+
+
 def test_byod_import_builds_pipeline_contract(repo, tmp_path):
     """自带数据：扁平 JSON → 03_raw_cases.json，字段结构与 MCP 一致、可被公共派生解析。"""
     import sys as _sys

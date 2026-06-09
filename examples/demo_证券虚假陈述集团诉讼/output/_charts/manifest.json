@@ -1,0 +1,20 @@
+{
+ "overview": {
+  "path": "examples/demo_证券虚假陈述集团诉讼/output/_charts/overview.png",
+  "w": 540,
+  "h": 372,
+  "caption": "图 1　样本概览：审理法院、审级、年份与裁判结果分布（N=7）"
+ },
+ "issue_freq": {
+  "path": "examples/demo_证券虚假陈述集团诉讼/output/_charts/issue_freq.png",
+  "w": 540,
+  "h": 321,
+  "caption": "图 2　各构成要件争点在核心判决中的出现频次"
+ },
+ "result_year": {
+  "path": "examples/demo_证券虚假陈述集团诉讼/output/_charts/result_year.png",
+  "w": 520,
+  "h": 260,
+  "caption": "图 3　裁判结果年度演进（N=7）"
+ }
+}
