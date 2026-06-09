@@ -169,9 +169,30 @@ def write_excel(main_rows, appendix_rows, out_path):
     print(f"  案件清单 {len(main_rows)} 条 | 权威案例附录 {len(appendix_rows)} 条")
 
 
+def output_name(argv):
+    """据 --name/--date 生成清单文件名：<案件类别>-类案检索清单-<YYYYMMDD>.xlsx。
+    未给 --name 时回退旧名"案件清单.xlsx"（向后兼容）。"""
+    import datetime
+    name, date = "", ""
+    i = 2
+    while i < len(argv):
+        if argv[i] == "--name" and i + 1 < len(argv):
+            name = argv[i + 1].strip(); i += 2
+        elif argv[i] == "--date" and i + 1 < len(argv):
+            date = argv[i + 1].strip(); i += 2
+        else:
+            i += 1
+    if not name:
+        return "案件清单.xlsx"
+    if not date:
+        date = datetime.date.today().strftime("%Y%m%d")
+    return f"{name}-类案检索清单-{date}.xlsx"
+
+
 def main():
     if len(sys.argv) < 2:
-        sys.exit("用法：python3 scripts/general/generate_excel.py <research_dir>")
+        sys.exit('用法：python3 scripts/general/generate_excel.py <research_dir> '
+                 '[--name "<案件类别>"] [--date YYYYMMDD]')
     rd = Path(sys.argv[1])
     cases = load(rd / "05_enriched_cases.json")
     if not cases:
@@ -182,7 +203,7 @@ def main():
     focuses = collect_focuses(cases)
     main_rows = build_main_rows(cases, focuses, raw_idx)
     appendix_rows = build_appendix_rows(raw_idx, screened)
-    write_excel(main_rows, appendix_rows, rd / "output" / "案件清单.xlsx")
+    write_excel(main_rows, appendix_rows, rd / "output" / output_name(sys.argv))
 
 
 if __name__ == "__main__":

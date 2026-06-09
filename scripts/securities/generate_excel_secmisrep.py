@@ -24,7 +24,25 @@ def header(ws, cols):
         ws.column_dimensions[get_column_letter(ci)].width=w
     ws.row_dimensions[1].height=32
 
+def output_name(argv):
+    """据 --name/--date 生成清单文件名：<案件类别>-类案检索清单-<YYYYMMDD>.xlsx。
+    未给 --name 时回退旧名"核心判决清单.xlsx"（向后兼容）。"""
+    import datetime
+    name,date="",""
+    i=2
+    while i<len(argv):
+        if argv[i]=="--name" and i+1<len(argv): name=argv[i+1].strip(); i+=2
+        elif argv[i]=="--date" and i+1<len(argv): date=argv[i+1].strip(); i+=2
+        else: i+=1
+    if not name: return "核心判决清单.xlsx"
+    if not date: date=datetime.date.today().strftime("%Y%m%d")
+    return f"{name}-类案检索清单-{date}.xlsx"
+
+
 def main():
+    if len(sys.argv)<2:
+        sys.exit('用法：python3 scripts/securities/generate_excel_secmisrep.py <research_dir> '
+                 '[--name "<案件类别>"] [--date YYYYMMDD]')
     rd=sys.argv[1]
     cases=json.load(open(os.path.join(rd,"05_enriched_cases.json"),encoding="utf-8"))
     out_dir=os.path.join(rd,"output"); os.makedirs(out_dir,exist_ok=True)
@@ -106,7 +124,7 @@ def main():
         ws3.row_dimensions[rr].height=24; rr+=1; idx+=1
     ws3.freeze_panes="A2"; ws3.auto_filter.ref=f"A1:{get_column_letter(len(h3))}1"
 
-    path=os.path.join(out_dir,"核心判决清单.xlsx"); wb.save(path)
+    path=os.path.join(out_dir,output_name(sys.argv)); wb.save(path)
     print("Excel 已生成：",path,"| 判决要点行",ws.max_row,"争点编码行",ws2.max_row)
 
 if __name__=="__main__":

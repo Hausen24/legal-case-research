@@ -1,6 +1,9 @@
 # 含真实 Token，绝不提交（用 .mcp.json.example 作模板）
 .mcp.json
 
+# 个人实践画像（含署名等隐私）；用 CLAUDE.example.md 作模板，复制为 CLAUDE.md 填写
+/CLAUDE.md
+
 # 每次研究的产出（含可能的当事人信息），默认不入库；如需分享样例，单独挑选
 research/*/
 !research/.gitkeep

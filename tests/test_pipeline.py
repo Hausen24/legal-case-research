@@ -44,9 +44,9 @@ def test_excel_substantive_columns_not_empty(repo, demo_copy):
     pytest.importorskip("openpyxl")
     pytest.importorskip("pandas")
     run(repo, f"{GENERAL}/normalize_cases.py", str(demo_copy))
-    run(repo, f"{GENERAL}/generate_excel.py", str(demo_copy))
-    xlsx = demo_copy / "output" / "案件清单.xlsx"
-    assert xlsx.exists()
+    run(repo, f"{GENERAL}/generate_excel.py", str(demo_copy), "--name", "短视频侵权案件", "--date", "20260607")
+    xlsx = demo_copy / "output" / "短视频侵权案件-类案检索清单-20260607.xlsx"
+    assert xlsx.exists(), "应按 <案件类别>-类案检索清单-<日期>.xlsx 命名"
 
     from openpyxl import load_workbook
     wb = load_workbook(xlsx)

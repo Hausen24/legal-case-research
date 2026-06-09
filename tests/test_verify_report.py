@@ -18,7 +18,7 @@ def test_demo_report_passes_verification(demo_dir):
     """演示报告引用的全部案号都应能在样本池中溯源。"""
     truth_nos, truth_urls = V.collect_truth(demo_dir)
     assert truth_nos, "样本池应至少有一个案号"
-    report = demo_dir / "output" / "类案分析报告_居中.md"
+    report = demo_dir / "output" / "短视频侵权案件-类案检索报告-20260607.md"
     result = V.verify_one(report, truth_nos, truth_urls)
     assert result["bad_nos"] == {}, f"不应有疑似编造案号：{result['bad_nos']}"
     assert result["matched"] == result["cited_total"]
@@ -27,7 +27,7 @@ def test_demo_report_passes_verification(demo_dir):
 def test_fabricated_caseno_is_flagged(demo_dir, tmp_path):
     """在报告里塞一个样本池没有的案号 → 必须被标记为疑似编造。"""
     truth_nos, truth_urls = V.collect_truth(demo_dir)
-    src = (demo_dir / "output" / "类案分析报告_居中.md").read_text(encoding="utf-8")
+    src = (demo_dir / "output" / "短视频侵权案件-类案检索报告-20260607.md").read_text(encoding="utf-8")
     tampered = src + "\n\n另见某案（（2099）假00民初9999号·虚构法院）。\n"
     p = tmp_path / "tampered.md"
     p.write_text(tampered, encoding="utf-8")
