@@ -40,6 +40,25 @@ def test_normalize_derives_norm_fields(repo, demo_copy):
         assert norm.get("案由") == "侵害作品信息网络传播权纠纷"
 
 
+def test_byod_import_builds_pipeline_contract(repo, tmp_path):
+    """自带数据：扁平 JSON → 03_raw_cases.json，字段结构与 MCP 一致、可被公共派生解析。"""
+    import sys as _sys
+    out = tmp_path / "byod"
+    run(repo, "scripts/general/import_cases.py", str(out),
+        "--json", "examples/byod_sample.json")
+    raw = json.loads((out / "03_raw_cases.json").read_text(encoding="utf-8"))
+    assert len(raw) == 3
+    _sys.path.insert(0, str(repo / "scripts" / "common"))
+    import pkulaw_utils as U
+    r0 = raw[0]
+    assert r0["CaseFlag"] == "（2023）示01民初0001号"
+    assert U.flatten_court(r0["LastInstanceCourt"]) == ("北京", "北京互联网法院")
+    assert U.flatten_leaf(r0["Category"]) == "侵害作品信息网络传播权纠纷"
+    # 普通案例 2 + 公报 1
+    codes = sorted(next(iter(r["CaseGrade"])) for r in raw)
+    assert codes == ["05", "07", "07"]
+
+
 def test_excel_substantive_columns_not_empty(repo, demo_copy):
     pytest.importorskip("openpyxl")
     pytest.importorskip("pandas")
