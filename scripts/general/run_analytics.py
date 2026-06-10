@@ -233,6 +233,41 @@ def _render_charts(research_dir, cases, analytics, n, focus_freq, year_result):
         manifest["result_year"] = {"path": str(charts_dir / "result_year.png"), "w": 520, "h": 260,
                                    "caption": f"图 3　裁判结果年度演进（N={n}）"}
 
+    # 图4：地域分布（学理模式用，报告未引用占位符则不插入）
+    region_od = od_desc(dist["地域"])
+    region_od.pop("", None)
+    if len(region_od) >= 2:
+        fig, ax = ct.single(figsize=(8.4, max(2.6, 0.55 * len(region_od) + 1.2)))
+        ct.hbar_panel(ax, region_od, "样本地域分布", highlight_max=True)
+        ax.set_title(f"样本地域分布（N={n}）", loc="left", fontsize=13,
+                     fontweight="bold", color=ct.NAVY, pad=10)
+        ct.save_fig(fig, str(charts_dir / "region_dist.png"))
+        manifest["region_dist"] = {"path": str(charts_dir / "region_dist.png"), "w": 520,
+                                   "h": 60 + 36 * len(region_od),
+                                   "caption": f"图 4　样本地域分布（N={n}）"}
+
+    # 图5：争点×地域观点热力矩阵（学理模式·描述性个案观点分布）
+    issue_region = defaultdict(lambda: Counter())
+    for c in cases:
+        r = safe_norm(c, "地域")
+        if not r:
+            continue
+        for focus in (c.get("焦点立场") or {}):
+            issue_region[focus][r] += 1
+    if issue_region and len({r for cnt in issue_region.values() for r in cnt}) >= 2:
+        issues = sorted(issue_region, key=lambda f: -sum(issue_region[f].values()))
+        regions = [r for r, _ in Counter(
+            {r: sum(issue_region[f].get(r, 0) for f in issues)
+             for r in {x for cnt in issue_region.values() for x in cnt}}).most_common()]
+        matrix = [[issue_region[f].get(r, 0) for r in regions] for f in issues]
+        fig, ax = ct.single(figsize=(max(5.5, 1.1 * len(regions) + 2.5),
+                                     max(2.8, 0.5 * len(issues) + 1.5)))
+        ct.issue_region_heatmap(ax, issues, regions, matrix)
+        ct.save_fig(fig, str(charts_dir / "issue_region.png"))
+        manifest["issue_region"] = {"path": str(charts_dir / "issue_region.png"), "w": 520,
+                                    "h": 80 + 30 * len(issues),
+                                    "caption": "图 5　各争议焦点裁判观点的地域分布（个案观点分布，不构成地域倾向推断）"}
+
     (charts_dir / "manifest.json").write_text(
         json.dumps(manifest, ensure_ascii=False, indent=1), encoding="utf-8")
     return f"图表与 manifest 已生成（{len(manifest)} 张）。"

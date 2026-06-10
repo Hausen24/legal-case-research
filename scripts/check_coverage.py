@@ -110,6 +110,30 @@ def main():
         名录核对 = {"名录数": len(roster), "命中数": len(hits),
                 "命中": hits, "缺口": gaps}
 
+    # ── 顺位覆盖（实案模式）：有 顺位法院.json（检查点1确认后落盘）时填充 ──
+    顺位覆盖 = None
+    tiers_path = rd / "顺位法院.json"
+    if tiers_path.exists():
+        tiers = json.loads(tiers_path.read_text(encoding="utf-8"))
+        顺位覆盖 = {}
+        gc_index = Path(__file__).resolve().parent.parent / "data" / "guiding_cases" / "index.json"
+        顺位覆盖["顺位1_指导性案例"] = {
+            "本地数据集": (f"{len(json.loads(gc_index.read_text(encoding='utf-8')))} 案可查"
+                       if gc_index.exists() else "未建（运行 scripts/fetch_guiding_cases.py）"),
+            "说明": "主题相关的指导性案例由 AI 检索数据集后列示，引用前按第九条核查效力",
+        }
+        for tier, courts in tiers.items():
+            if not isinstance(courts, list):
+                continue
+            hits = []
+            for c in raw:
+                _, court = flatten_court(c.get("LastInstanceCourt"))
+                if any(tc in court or court in tc for tc in courts if tc):
+                    hits.append(c.get("CaseFlag") or c.get("Title", ""))
+            顺位覆盖[tier] = {"目标法院": courts, "命中": len(hits),
+                          "案件": hits[:50],
+                          "缺口提示": "" if hits else "本顺位 0 命中——补检或在检查点2如实呈报"}
+
     # ── 去重审计 ──
     gid_cnt = Counter(c.get("Gid") for c in raw if c.get("Gid"))
     dup_gids = [g for g, n in gid_cnt.items() if n > 1]
@@ -130,7 +154,7 @@ def main():
         "track分布": track分布,
         "名录核对": 名录核对,
         "去重审计": {"Gid重复": dup_gids, "同案号多Gid": same_flag},
-        "顺位覆盖": None,  # 实案模式（按法发〔2020〕24号四顺位）预留，见 ROADMAP
+        "顺位覆盖": 顺位覆盖,  # 实案模式：检查点1确认后落盘 顺位法院.json 即填充
     }
     out = rd / "07_coverage.json"
     out.write_text(json.dumps(coverage, ensure_ascii=False, indent=1), encoding="utf-8")
@@ -158,6 +182,14 @@ def main():
         print(f"\n⚠️ 去重审计异常：Gid重复 {dup_gids or '无'}；同案号多Gid {same_flag or '无'}")
     else:
         print("\n去重审计：通过（无 Gid 重复、无同案号多 Gid）")
+    if 顺位覆盖:
+        print("\n顺位覆盖（法发〔2020〕24号第四条·实案模式）：")
+        for tier, info in 顺位覆盖.items():
+            if "命中" in info:
+                gap = f"　⚠️ {info['缺口提示']}" if info.get("缺口提示") else ""
+                print(f"  {tier}: {info['命中']} 件（目标法院 {info['目标法院']}）{gap}")
+            else:
+                print(f"  {tier}: {info.get('本地数据集', '')}")
     print("\n▸ 本结果可作为报告附录「检索过程说明」的方法/结果底稿"
           "（法发〔2020〕24号第八条要素）。缺口须在检查点 2 如实呈报。")
 

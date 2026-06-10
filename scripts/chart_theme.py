@@ -142,6 +142,33 @@ def overview_2x2(panels, suptitle="样本概览", figsize=(9, 6.2)):
     fig.tight_layout(rect=[0, 0, 1, 0.95])
     return fig
 
+def issue_region_heatmap(ax, issues, regions, matrix, title="各争议焦点裁判观点的地域分布"):
+    """争点×地域热力矩阵（学理模式）。matrix[i][j] = 第 i 争点在第 j 地域的案件数。
+    描述性呈现个案观点分布；是否构成地域倾向结论由 divergence_gate 另行裁定。"""
+    _style(ax)
+    arr = np.asarray(matrix, dtype=float)
+    if arr.size == 0:
+        return
+    mx = arr.max() or 1
+    # 冷色渐变：0→近白，max→Navy
+    from matplotlib.colors import LinearSegmentedColormap
+    cmap = LinearSegmentedColormap.from_list("navy_seq", ["#FFFFFF", PALE, BLUE3, NAVY])
+    ax.imshow(arr, cmap=cmap, aspect="auto", vmin=0, vmax=mx)
+    ax.set_xticks(range(len(regions))); ax.set_xticklabels(regions, fontsize=9)
+    ax.set_yticks(range(len(issues)))
+    ax.set_yticklabels([i if len(i) <= 14 else i[:13] + "…" for i in issues], fontsize=9)
+    for i in range(arr.shape[0]):
+        for j in range(arr.shape[1]):
+            v = int(arr[i, j])
+            if v:
+                ax.text(j, i, str(v), ha="center", va="center", fontsize=9,
+                        color=("white" if v > mx * 0.55 else G1),
+                        fontweight=("bold" if v == mx else "normal"))
+    for s in ("left", "bottom"):
+        ax.spines[s].set_visible(False)
+    ax.set_title(title, loc="left", fontsize=13, fontweight="bold", color=NAVY, pad=10)
+
+
 def single(figsize=(8.4, 5)):
     return plt.subplots(figsize=figsize)
 

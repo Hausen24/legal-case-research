@@ -16,5 +16,17 @@
   "w": 520,
   "h": 260,
   "caption": "图 3　裁判结果年度演进（N=6）"
+ },
+ "region_dist": {
+  "path": "examples/demo_算法推荐短视频侵权/output/_charts/region_dist.png",
+  "w": 520,
+  "h": 204,
+  "caption": "图 4　样本地域分布（N=6）"
+ },
+ "issue_region": {
+  "path": "examples/demo_算法推荐短视频侵权/output/_charts/issue_region.png",
+  "w": 520,
+  "h": 170,
+  "caption": "图 5　各争议焦点裁判观点的地域分布（个案观点分布，不构成地域倾向推断）"
  }
 }
