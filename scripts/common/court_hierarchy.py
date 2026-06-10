@@ -26,11 +26,33 @@ def _load():
     return json.loads(DATA.read_text(encoding="utf-8")) if DATA.exists() else {}
 
 
+# 省级行政区短名 → 规范全称（用于"XX金融法院/互联网法院"等不含"省/市"的专门法院）
+_PROVINCE_ALIAS = {
+    "北京": "北京市", "上海": "上海市", "天津": "天津市", "重庆": "重庆市",
+    "内蒙古": "内蒙古自治区", "广西": "广西壮族自治区", "西藏": "西藏自治区",
+    "宁夏": "宁夏回族自治区", "新疆": "新疆维吾尔自治区",
+}
+_PROVINCES = ["河北", "山西", "辽宁", "吉林", "黑龙江", "江苏", "浙江", "安徽", "福建",
+              "江西", "山东", "河南", "湖北", "湖南", "广东", "海南", "四川", "贵州",
+              "云南", "陕西", "甘肃", "青海"]
+
+
 def _province_of(court: str) -> str:
-    """从法院全称取省级行政区（含直辖市）。"""
+    """从法院全称取省级行政区（含直辖市）。先按"省/市/自治区"正式后缀，
+    再对专门法院（如"上海金融法院"无"市"字）按短名前缀兜底。"""
+    if not court:
+        return ""
     m = re.match(r"^(北京市|上海市|天津市|重庆市|"
                  r"[^省]{2,8}省|[^区]{2,12}(?:壮族|回族|维吾尔)?自治区)", court)
-    return m.group(1) if m else ""
+    if m:
+        return m.group(1)
+    for short, full in _PROVINCE_ALIAS.items():        # 直辖市/自治区短名前缀
+        if court.startswith(short):
+            return full
+    for p in _PROVINCES:                                # 普通省短名前缀
+        if court.startswith(p):
+            return p + "省"
+    return ""
 
 
 def resolve_tiers(core_court: str) -> dict:
