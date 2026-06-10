@@ -33,6 +33,8 @@ jobs:
           python scripts/general/normalize_cases.py "examples/demo_算法推荐短视频侵权"
           python scripts/general/run_analytics.py "examples/demo_算法推荐短视频侵权"
           python scripts/general/generate_excel.py "examples/demo_算法推荐短视频侵权" --name "短视频侵权案件" --date 20260607
+          python scripts/validate_pipeline.py "examples/demo_算法推荐短视频侵权"
+          python scripts/check_coverage.py "examples/demo_算法推荐短视频侵权"
           python scripts/verify_report.py "examples/demo_算法推荐短视频侵权"
 
       - name: Smoke B — group-litigation (securities) demo
@@ -41,6 +43,8 @@ jobs:
           python scripts/securities/normalize_secmisrep.py "examples/demo_证券虚假陈述集团诉讼"
           python scripts/securities/run_analytics_secmisrep.py "examples/demo_证券虚假陈述集团诉讼"
           python scripts/securities/generate_excel_secmisrep.py "examples/demo_证券虚假陈述集团诉讼" --name "证券虚假陈述案件" --date 20260609
+          python scripts/validate_pipeline.py "examples/demo_证券虚假陈述集团诉讼"
+          python scripts/check_coverage.py "examples/demo_证券虚假陈述集团诉讼"
           python scripts/verify_report.py "examples/demo_证券虚假陈述集团诉讼"
 
       - name: Smoke C — bring-your-own-data import

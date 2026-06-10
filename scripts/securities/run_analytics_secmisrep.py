@@ -12,6 +12,8 @@ SCRIPTS = os.path.dirname(HERE)                      # scripts/
 sys.path[:0] = [SCRIPTS, os.path.join(SCRIPTS, "common")]
 import chart_theme as ct
 import stats_guard as sg
+import divergence as dv
+import pipeline_schema as ps
 
 ISSUES = ['发行人责任','控股股东与董监高责任','中介机构责任','责任形态','虚假陈述认定','重大性',
           '预测性信息安全港','自愿性披露','损失计算','揭露日认定','交易因果关系','损失因果关系',
@@ -27,6 +29,10 @@ def main():
     out_dir = os.path.join(rd, "output"); charts_dir = os.path.join(out_dir, "_charts")
     os.makedirs(charts_dir, exist_ok=True)
     N = len(cases)
+
+    # 编码契约校验（warn 模式；严格校验用 scripts/validate_pipeline.py）
+    for m in ps.validate_05(cases).errors:
+        print(f"⚠️ [契约] {m}")
 
     court = collections.Counter(c.get("审理法院") for c in cases)
     level = collections.Counter(c.get("审级") or "—" for c in cases)
@@ -63,6 +69,14 @@ def main():
         "定量档": sg.stat_tier(N),
         "深度档": depth,
         "地域分歧": gate,                      # report=False 时报告不得设地域分歧小节
+        # 分歧地图（一等产出）：同问题对立倾向并存清单 + 代表案对（法发〔2020〕24号第十一条情形）
+        "分歧地图": dv.build_divergence(
+            cases,
+            get_positions=lambda c: {q: (i or {}).get("倾向标签")
+                                     for q, i in (c.get("问题观点") or {}).items()},
+            get_region=lambda c: c.get("法院地") or "",
+            get_caseflag=lambda c: c.get("案号") or c.get("CaseFlag", ""),
+        ),
     }
     json.dump(analytics, open(os.path.join(rd, "06_analytics.json"), "w", encoding="utf-8"),
               ensure_ascii=False, indent=1)
@@ -102,7 +116,8 @@ def main():
     json.dump(manifest, open(os.path.join(charts_dir, "manifest.json"), "w", encoding="utf-8"),
               ensure_ascii=False, indent=1)
     print(f"分析完成：N={N}，独立事件={len(events)}，深度档={depth['mode']}，"
-          f"地域分歧={'报告' if gate['report'] else '不报告(样本不足)'}；图表与 manifest 已生成。")
+          f"地域分歧={'报告' if gate['report'] else '不报告(样本不足)'}，"
+          f"分歧争点 {len(analytics['分歧地图'])} 个；图表与 manifest 已生成。")
 
 if __name__ == "__main__":
     main()

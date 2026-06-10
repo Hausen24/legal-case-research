@@ -124,8 +124,34 @@ def main():
         ws3.row_dimensions[rr].height=24; rr+=1; idx+=1
     ws3.freeze_panes="A2"; ws3.auto_filter.ref=f"A1:{get_column_letter(len(h3))}1"
 
+    # ---- Sheet4 裁判分歧清单（读 06 的 分歧地图；无则略）----
+    div={}
+    p06=os.path.join(rd,"06_analytics.json")
+    if os.path.exists(p06):
+        div=(json.load(open(p06,encoding="utf-8")) or {}).get("分歧地图") or {}
+    n_div=0
+    if div:
+        ws4=wb.create_sheet("裁判分歧清单")
+        h4=[("序号",6),("争议问题",22),("立场A(件数)",18),("立场A代表案号",24),
+            ("立场B(件数)",18),("立场B代表案号",24),("其他立场",16),("样本提示",38)]
+        header(ws4,h4); rr=2
+        for i,(issue,info) in enumerate(div.items(),1):
+            stances=sorted((info.get("立场分布") or {}).items(),key=lambda x:-x[1])
+            if len(stances)<2: continue
+            (sa,na),(sb,nb)=stances[0],stances[1]; reps=info.get("代表案") or {}
+            vals=[i,issue,f"{sa}（{na}）","；".join(reps.get(sa,[])),
+                  f"{sb}（{nb}）","；".join(reps.get(sb,[])),
+                  "；".join(f"{s}（{n}）" for s,n in stances[2:]),info.get("措辞","")]
+            for ci,v in enumerate(vals,1):
+                cell=ws4.cell(row=rr,column=ci,value=v); cell.border=BORD; cell.font=F(10)
+                cell.alignment=(WT if ci in (2,4,6,8) else WC)
+                if rr%2==0: cell.fill=PatternFill("solid",fgColor=BAND)
+            ws4.row_dimensions[rr].height=40; rr+=1; n_div+=1
+        ws4.freeze_panes="A2"; ws4.auto_filter.ref=f"A1:{get_column_letter(len(h4))}1"
+
     path=os.path.join(out_dir,output_name(sys.argv)); wb.save(path)
-    print("Excel 已生成：",path,"| 判决要点行",ws.max_row,"争点编码行",ws2.max_row)
+    print("Excel 已生成：",path,"| 判决要点行",ws.max_row,"争点编码行",ws2.max_row,
+          "| 分歧争点",n_div)
 
 if __name__=="__main__":
     main()

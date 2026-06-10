@@ -28,19 +28,11 @@ import sys
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent / "common"))
-from pkulaw_utils import clean_url  # noqa: E402
+from pkulaw_utils import clean_url, normalize_caseno  # noqa: E402
 
 # 案号样式：（YYYY）+ 法院/类型字 + 数字 + 号。兼容全角/半角括号。
 CASE_NO_RE = re.compile(r"[（(]\s*\d{4}\s*[)）][^\s，。；：、,.;:（）()]{1,40}?\d+号")
 URL_RE = re.compile(r"https?://[^\s）)\]\"'，。、]+")
-
-
-def normalize_caseno(s: str) -> str:
-    """规范化案号用于比对：统一全角括号、去除所有空白与不可见字符。"""
-    if not s:
-        return ""
-    s = s.replace("(", "（").replace(")", "）")
-    return re.sub(r"\s+", "", s.strip())
 
 
 def load_json(path: Path):

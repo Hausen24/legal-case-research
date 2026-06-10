@@ -118,6 +118,15 @@ def field(case: dict, raw_idx: dict, key: str, default=""):
     return default
 
 
+def normalize_caseno(s: str) -> str:
+    """规范化案号用于比对：统一全角括号、去除所有空白与不可见字符。
+    verify_report（反幻觉校验）与 check_coverage（名录核对）共用。"""
+    if not s:
+        return ""
+    s = s.replace("(", "（").replace(")", "）")
+    return re.sub(r"\s+", "", s.strip())
+
+
 COMPANY_RE = re.compile(
     r"([一-龥（）()A-Za-z0-9]{2,}?"
     r"(?:股份有限公司|有限责任公司|有限公司|集团股份|集团|银行|证券|保险))"

@@ -29,6 +29,8 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 SCRIPTS = os.path.dirname(HERE)                       # scripts/
 sys.path[:0] = [SCRIPTS, os.path.join(SCRIPTS, "common")]
 import stats_guard as sg                              # 必需：样本量自适应闸门
+import divergence as dv                               # 分歧检测（一等产出）
+import pipeline_schema as ps                          # 数据契约校验（warn 模式）
 
 # 图表层可选：matplotlib 缺失时优雅降级（分析仍写出，仅跳过出图）
 try:
@@ -82,6 +84,11 @@ def main():
         sys.exit(f"未找到 {path}")
     cases = json.loads(path.read_text(encoding="utf-8"))
     n = len(cases)
+
+    # 编码契约校验（warn 模式：只提示不阻断；严格校验用 scripts/validate_pipeline.py）
+    rep = ps.validate_05(cases)
+    for m in rep.errors:
+        print(f"⚠️ [契约] {m}")
 
     analytics = {"样本量": n}
 
@@ -156,6 +163,15 @@ def main():
     analytics["维度五_焦点立场分布"] = {f: dict(cnt) for f, cnt in focus_positions.items()}
     analytics["争点出现频次"] = dict(focus_freq)
 
+    # ── 分歧地图（一等产出）：同争点对立立场并存的争点清单 + 代表案对 ──
+    analytics["分歧地图"] = dv.build_divergence(
+        cases,
+        get_positions=lambda c: {f: (i or {}).get("立场")
+                                 for f, i in (c.get("焦点立场") or {}).items()},
+        get_region=lambda c: safe_norm(c, "地域"),
+        get_caseflag=lambda c: c.get("CaseFlag", ""),
+    )
+
     # 维度六（要素-结果影响度）需法律解读，留给 Claude Code 基于上述结果撰写。
     analytics["维度六_说明"] = "要素-结果影响度排序由报告撰写时综合上述维度做法律解读得出。"
 
@@ -167,8 +183,8 @@ def main():
         research_dir, cases, analytics, n, focus_freq, year_result)
 
     print(f"六维统计完成，写入 {out}；样本 N={n}，深度档={analytics['深度档']['mode']}，"
-          f"定量档={analytics['定量档']}，地域分歧={'报告' if analytics['地域分歧']['report'] else '不报告(样本不足)'}。"
-          f"{chart_msg}")
+          f"定量档={analytics['定量档']}，地域分歧={'报告' if analytics['地域分歧']['report'] else '不报告(样本不足)'}，"
+          f"分歧争点 {len(analytics['分歧地图'])} 个。{chart_msg}")
 
 
 def _render_charts(research_dir, cases, analytics, n, focus_freq, year_result):

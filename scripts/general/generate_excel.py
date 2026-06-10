@@ -114,7 +114,34 @@ def build_appendix_rows(raw_idx, screened):
     return rows
 
 
-def write_excel(main_rows, appendix_rows, out_path):
+def build_divergence_rows(rd):
+    """从 06_analytics.json 的 分歧地图 生成「裁判分歧清单」行（无 06 或无分歧则空）。"""
+    p = rd / "06_analytics.json"
+    if not p.exists():
+        return []
+    import json as _json
+    div = (_json.loads(p.read_text(encoding="utf-8")) or {}).get("分歧地图") or {}
+    rows = []
+    for i, (issue, info) in enumerate(div.items(), 1):
+        stances = sorted((info.get("立场分布") or {}).items(), key=lambda x: -x[1])
+        if len(stances) < 2:
+            continue
+        (sa, na), (sb, nb) = stances[0], stances[1]
+        reps = info.get("代表案") or {}
+        rows.append({
+            "序号": i,
+            "争议焦点": issue,
+            "立场A(件数)": f"{sa}（{na}）",
+            "立场A代表案号": "；".join(reps.get(sa, [])),
+            "立场B(件数)": f"{sb}（{nb}）",
+            "立场B代表案号": "；".join(reps.get(sb, [])),
+            "其他立场": "；".join(f"{s}（{n}）" for s, n in stances[2:]),
+            "样本提示": info.get("措辞", ""),
+        })
+    return rows
+
+
+def write_excel(main_rows, appendix_rows, out_path, divergence_rows=None):
     import pandas as pd
     from openpyxl.styles import Font, PatternFill, Alignment
     from openpyxl.utils import get_column_letter
@@ -165,8 +192,25 @@ def write_excel(main_rows, appendix_rows, out_path):
                     cell.alignment = Alignment(vertical="top", wrap_text=True)
             ws2.freeze_panes = "A2"
 
+        if divergence_rows:
+            df3 = pd.DataFrame(divergence_rows)
+            df3.to_excel(writer, index=False, sheet_name="裁判分歧清单")
+            ws3 = writer.sheets["裁判分歧清单"]
+            for i, cell in enumerate(ws3[1]):
+                cell.fill = hdr_fill
+                cell.font = hdr_font
+                cell.alignment = Alignment(horizontal="center", vertical="center", wrap_text=True)
+                ws3.column_dimensions[get_column_letter(i + 1)].width = \
+                    [6, 26, 16, 26, 16, 26, 18, 40][i] if i < 8 else 18
+            for r_idx, row in enumerate(ws3.iter_rows(min_row=2), start=2):
+                for cell in row:
+                    cell.alignment = Alignment(vertical="top", wrap_text=True)
+                ws3.row_dimensions[r_idx].height = 48
+            ws3.freeze_panes = "A2"
+
     print(f"Excel 已生成：{out_path}")
-    print(f"  案件清单 {len(main_rows)} 条 | 权威案例附录 {len(appendix_rows)} 条")
+    print(f"  案件清单 {len(main_rows)} 条 | 权威案例附录 {len(appendix_rows)} 条 | "
+          f"裁判分歧清单 {len(divergence_rows or [])} 条")
 
 
 def output_name(argv):
@@ -203,7 +247,8 @@ def main():
     focuses = collect_focuses(cases)
     main_rows = build_main_rows(cases, focuses, raw_idx)
     appendix_rows = build_appendix_rows(raw_idx, screened)
-    write_excel(main_rows, appendix_rows, rd / "output" / output_name(sys.argv))
+    write_excel(main_rows, appendix_rows, rd / "output" / output_name(sys.argv),
+                divergence_rows=build_divergence_rows(rd))
 
 
 if __name__ == "__main__":
