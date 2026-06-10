@@ -52,11 +52,41 @@ class Report:
         return not self.errors
 
 
+# 汇编/典型案例/法院报道类条目的标题特征（这类条目无单独案号，属正常）
+_COLLECTION_HINT = ("发布", "十大", "典型案例", "参考案例", "案例汇编", "白皮书",
+                    "年度", "营商环境", "人民法院报", "审判工作", "纪要")
+
+
+def _leaf(nested) -> str:
+    """取多级嵌套对象最末级（键最长）的值；非 dict 返回空。"""
+    if not isinstance(nested, dict) or not nested:
+        return ""
+    return sorted(nested.items(), key=lambda kv: len(kv[0]))[-1][1]
+
+
+def _is_collection_entry(r: dict) -> bool:
+    """判断是否为'汇编/典型案例/报道'条目：无 07、或非判决书裁定书、或标题含汇编特征。
+    这类条目合法地没有单独案号，缺 CaseFlag 仅作 warning。"""
+    cg = r.get("CaseGrade")
+    has07 = isinstance(cg, dict) and any("07" in k for k in cg)
+    doc = _leaf(r.get("DocumentAttr"))
+    is_doc = doc in ("判决书", "裁定书", "调解书", "决定书")
+    title = r.get("Title") or ""
+    looks_collection = any(h in title for h in _COLLECTION_HINT)
+    return (not has07) or (not is_doc) or looks_collection
+
+
 def _check_record_core(r: dict, i: int, rep: Report, require_body_fields: bool):
     """单条记录的核心契约（03/04 core/typical 共用）。"""
-    for key in ("Gid", "Title", "CaseFlag"):
+    for key in ("Gid", "Title"):
         if not r.get(key):
             rep.err(f"第{i}条缺必填字段 {key}（Title={str(r.get('Title'))[:20]}…）")
+    if not r.get("CaseFlag"):
+        if _is_collection_entry(r):
+            rep.warn(f"第{i}条无案号（疑似汇编/典型案例条目：{str(r.get('Title'))[:24]}…），"
+                     f"如确为判决请补 CaseFlag")
+        else:
+            rep.err(f"第{i}条缺必填字段 CaseFlag（Title={str(r.get('Title'))[:20]}…）")
     cg = r.get("CaseGrade")
     if cg is not None and not isinstance(cg, dict):
         rep.err(f"第{i}条 CaseGrade 应为嵌套对象（MCP 原样），实为 {type(cg).__name__}")
