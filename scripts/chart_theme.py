@@ -23,7 +23,8 @@ NAVY = "#1F3864"; BLUE2 = "#2E5A88"; BLUE3 = "#4E7CA8"; STEEL = "#6E93B8"; PALE 
 RED  = "#9B1B30"   # 强调（北大红系），仅用于单点高亮
 G1 = "#3F4A5A"; G2 = "#8A93A0"; G3 = "#AEB6C0"; G4 = "#E3E7EC"
 PALETTE = [NAVY, BLUE3, STEEL, BLUE2, PALE]            # 分类用（同色系递进）
-RESULT_COLORS = {"全部支持": NAVY, "部分支持": BLUE3, "驳回": G2, "撤销改判": STEEL}
+# 结果配色统一冷蓝系递进（不混灰），与渐变条形图视觉语言一致
+RESULT_COLORS = {"全部支持": NAVY, "部分支持": BLUE3, "驳回": STEEL, "撤销改判": PALE}
 
 _CJK_CANDIDATES = ["Noto Sans CJK SC", "Noto Sans CJK HK", "Noto Sans CJK JP",
                    "Source Han Sans SC", "PingFang SC", "Microsoft YaHei", "SimHei",
@@ -70,12 +71,14 @@ def _gbar_h(ax, y, w, base, h=0.6, shadow=True):
     clip = plt.Rectangle((0, y-h/2), w, h, fill=False, lw=0); ax.add_patch(clip); im.set_clip_path(clip)
     ax.add_patch(plt.Rectangle((0, y+h/2-h*0.10), w, h*0.10, facecolor="white", alpha=0.18, zorder=3, lw=0))
 
-def _gbar_v(ax, x, hgt, base, w=0.6, shadow=True):
+def _gbar_v(ax, x, hgt, base, w=0.6, shadow=True, y0=0.0):
+    if hgt <= 0:
+        return
     if shadow:
-        ax.add_patch(plt.Rectangle((x-w/2+0.03, 0), w, hgt, facecolor="#1b2733", alpha=0.10, zorder=1, lw=0))
+        ax.add_patch(plt.Rectangle((x-w/2+0.03, y0), w, hgt, facecolor="#1b2733", alpha=0.10, zorder=1, lw=0))
     light = "#%02x%02x%02x" % tuple(int(v*255) for v in _lighten(base, 0.5))
-    im = ax.imshow(_grad(light, base, False), extent=[x-w/2, x+w/2, 0, hgt], aspect="auto", zorder=2, origin="lower")
-    clip = plt.Rectangle((x-w/2, 0), w, hgt, fill=False, lw=0); ax.add_patch(clip); im.set_clip_path(clip)
+    im = ax.imshow(_grad(light, base, False), extent=[x-w/2, x+w/2, y0, y0+hgt], aspect="auto", zorder=2, origin="lower")
+    clip = plt.Rectangle((x-w/2, y0), w, hgt, fill=False, lw=0); ax.add_patch(clip); im.set_clip_path(clip)
 
 # ---------- 对外绘图原语 ----------
 def hbar_panel(ax, counter, title, color=NAVY, highlight_max=False):
@@ -110,21 +113,40 @@ def vbar_panel(ax, counter, title, color=NAVY):
     ax.set_title(title, loc="left", fontsize=10.5, fontweight="bold", color=G1, pad=6)
 
 def stacked_year(ax, years, data, title, cats=("全部支持", "部分支持", "驳回", "撤销改判")):
-    """堆叠柱：data = {类别: [各年计数]}。"""
+    """堆叠柱：data = {类别: [各年计数]}。
+    与 hbar/vbar 同一视觉语言：冷蓝系渐变分段 + 整柱柔投影 + 白色细分隔线。"""
     _style(ax); ax.set_yticks([])
-    bottom = [0]*len(years)
-    for c in cats:
-        vals = data.get(c)
-        if not vals or sum(vals) == 0:
-            continue
-        ax.bar(years, vals, bottom=bottom, label=c, color=RESULT_COLORS.get(c, NAVY),
-               width=0.6, edgecolor="white", linewidth=0.8)
-        bottom = [b+v for b, v in zip(bottom, vals)]
-    if not bottom or max(bottom) == 0:
+    n = len(years)
+    used = [c for c in cats if data.get(c) and sum(data[c]) > 0]
+    totals = [sum(data[c][i] for c in used) for i in range(n)]
+    if not totals or max(totals) == 0:
         return
-    mxb = max(bottom); ax.set_ylim(0, mxb*1.22)
-    ax.legend(frameon=False, fontsize=8.5, ncol=3, loc="upper left", bbox_to_anchor=(0, 1.0))
-    for i, hh in enumerate(bottom):
+    mxb = max(totals)
+    w = 0.6
+    # 整柱投影一次（避免分段投影叠加发黑）
+    for i, tot in enumerate(totals):
+        if tot:
+            ax.add_patch(plt.Rectangle((i-w/2+0.03, 0), w, tot,
+                                       facecolor="#1b2733", alpha=0.10, zorder=1, lw=0))
+    # 渐变分段 + 段顶白色细分隔线
+    for i in range(n):
+        y0 = 0.0
+        for c in used:
+            v = data[c][i]
+            if not v:
+                continue
+            _gbar_v(ax, i, v, RESULT_COLORS.get(c, NAVY), w=w, shadow=False, y0=y0)
+            y0 += v
+            if y0 < totals[i]:
+                ax.add_patch(plt.Rectangle((i-w/2, y0-mxb*0.006), w, mxb*0.012,
+                                           facecolor="white", zorder=3, lw=0))
+    ax.set_xticks(range(n)); ax.set_xticklabels(years)
+    ax.set_xlim(-0.6, n-0.4); ax.set_ylim(0, mxb*1.22)
+    from matplotlib.patches import Patch
+    ax.legend(handles=[Patch(facecolor=RESULT_COLORS.get(c, NAVY), label=c) for c in used],
+              frameon=False, fontsize=8.5, ncol=min(4, len(used)),
+              loc="upper left", bbox_to_anchor=(0, 1.02))
+    for i, hh in enumerate(totals):
         if hh:
             ax.text(i, hh + mxb*0.02, str(int(hh)), ha="center", fontsize=9, color=G1)
     ax.set_title(title, loc="left", fontsize=13, fontweight="bold", color=NAVY, pad=10)
