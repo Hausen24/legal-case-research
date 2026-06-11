@@ -37,7 +37,7 @@ jobs:
           python scripts/check_coverage.py "examples/demo_算法推荐短视频侵权"
           python scripts/verify_report.py "examples/demo_算法推荐短视频侵权"
 
-      - name: Smoke B — group-litigation (securities) demo
+      - name: Smoke B — group-case (securities) demo
         run: |
           python examples/build_demo_secmisrep.py
           python scripts/securities/normalize_secmisrep.py "examples/demo_证券虚假陈述集团诉讼"

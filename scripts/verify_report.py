@@ -109,8 +109,10 @@ def main():
     if len(sys.argv) > 2:
         reports = [out_dir / a for a in sys.argv[2:]]
     else:
-        # 新命名 <案件类别>-类案检索报告-<日期>.md；兼容旧名 类案分析报告*.md
-        reports = sorted(set(out_dir.glob("*类案检索报告*.md")) | set(out_dir.glob("类案分析报告*.md")))
+        # 实案=类案检索报告 / 学理=裁判规则研究报告；兼容旧名 类案分析报告*.md
+        reports = sorted(set(out_dir.glob("*类案检索报告*.md"))
+                         | set(out_dir.glob("*裁判规则研究报告*.md"))
+                         | set(out_dir.glob("类案分析报告*.md")))
     if not reports:
         sys.exit(f"未找到待校验报告（{out_dir}/*类案检索报告*.md）。可显式传入文件名。")
 

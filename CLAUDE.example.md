@@ -11,8 +11,7 @@
 
 ## 项目说明
 这是一个基于案例库（默认北大法宝 MCP，亦支持自带数据，见 `AGENTS.md`）的类案检索与分析项目。
-- 标准类案检索 → `skills/case-research/SKILL.md`
-- 集团/群体性诉讼（核心判决筛选）→ `skills/group-litigation-research/SKILL.md`
+统一技能 → `skills/case-research/SKILL.md`（开工确认两开关：学理/实案 × 散案/集团案）
 
 当我请求“做一次类案研究/类案检索/类案分析”时，请加载对应 Skill 并严格按其三步两检查点流程执行。
 
