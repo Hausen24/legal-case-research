@@ -19,7 +19,9 @@ const M = JSON.parse(fs.readFileSync(modelPath, "utf-8"));
 const NAVY="1F3864", RED="9B1B30", GRAY="595959", LINE="C9C9C9";
 const BODY="宋体", HEAD="黑体", LAT="Times New Roman";
 
-const trun = (t,o={}) => new TextRun({text:t, font:o.font||BODY, size:o.size||24,
+// 字体规范：西文一律 Times New Roman，中文用指定东亚字体（宋体/黑体）
+const FT = (cn) => ({ascii:LAT, hAnsi:LAT, eastAsia:cn||BODY});
+const trun = (t,o={}) => new TextRun({text:t, font:FT(o.font), size:o.size||24,
   bold:!!o.b, italics:!!o.i, color:o.color, superScript:!!o.sup});
 
 // 把模型 runs 渲染为 docx runs（含脚注引用）
@@ -51,7 +53,7 @@ function heading(block){
   const p={spacing:{before:240, after:120}};
   if(block.level===1) p.border={bottom:{style:BorderStyle.SINGLE,size:6,color:NAVY,space:4}};
   return new Paragraph({heading:hl, ...p,
-    children:[new TextRun({text:block.text, font:HEAD, size:sizes[block.level], bold:true, color:"000000"})]});
+    children:[new TextRun({text:block.text, font:FT(HEAD), size:sizes[block.level], bold:true, color:"000000"})]});
 }
 function image(block){
   return [
@@ -60,7 +62,7 @@ function image(block){
         transformation:{width:block.w||540, height:block.h||340},
         altText:{title:block.caption||"", description:block.caption||"", name:"chart"}})]}),
     new Paragraph({alignment:AlignmentType.CENTER, spacing:{before:40,after:160},
-      children:[new TextRun({text:block.caption||"", font:BODY, size:18, color:GRAY})]})
+      children:[new TextRun({text:block.caption||"", font:FT(BODY), size:18, color:GRAY})]})
   ];
 }
 // 单元格内容：支持纯字符串（向后兼容）或行内 runs（含 [文字](链接) 转脚注、**加粗**）
@@ -69,11 +71,11 @@ function cellChildren(cell, head){
   const out=[];
   for(const r of arr){
     if(r.t!==undefined && r.t!=="")
-      out.push(new TextRun({text:String(r.t), font:BODY, size:head?18:17,
+      out.push(new TextRun({text:String(r.t), font:FT(BODY), size:head?18:17,
         bold: head|| !!r.b, color: head?"FFFFFF":(r.color||"222222")}));
     if(r.fn!==undefined) out.push(new FootnoteReferenceRun(r.fn));
   }
-  return out.length?out:[new TextRun({text:"", font:BODY, size:head?18:17})];
+  return out.length?out:[new TextRun({text:"", font:FT(BODY), size:head?18:17})];
 }
 function table(block){
   const widths=block.widths;
@@ -95,7 +97,7 @@ const main=[];
 for(const b of M.blocks){
   if(b.type==="toc"){
     main.push(new Paragraph({alignment:AlignmentType.CENTER, spacing:{after:160},
-      children:[new TextRun({text:"目　录", font:HEAD, size:32, bold:true})]}));
+      children:[new TextRun({text:"目　录", font:FT(HEAD), size:32, bold:true})]}));
     main.push(new TableOfContents("TOC",{hyperlink:true, headingStyleRange:"1-2"}));
   } else if(b.type==="pagebreak"){ main.push(new Paragraph({children:[new PageBreak()]})); }
   else if(b.type==="h"){ main.push(heading(b)); }
@@ -111,11 +113,11 @@ const footnotes={};
 for(const [id,obj] of Object.entries(M.footnotes||{})){
   const children=[];
   if(obj.url){
-    children.push(new TextRun({text:(obj.text||"")+"　北大法宝：", font:BODY, size:18}));
+    children.push(new TextRun({text:(obj.text||"")+"　北大法宝：", font:FT(BODY), size:18}));
     children.push(new ExternalHyperlink({link:obj.url,
       children:[new TextRun({text:obj.url, font:LAT, size:18, color:"1F4E79", underline:{}})]}));
   } else {
-    children.push(new TextRun({text:obj.text||"", font:BODY, size:18}));
+    children.push(new TextRun({text:obj.text||"", font:FT(BODY), size:18}));
   }
   footnotes[id]={children:[new Paragraph({spacing:{line:240}, children})]};
 }
@@ -126,38 +128,38 @@ const titleLines = (cov.titleLines && cov.titleLines.length) ? cov.titleLines : 
 const coverChildren=[
   new Paragraph({alignment:AlignmentType.CENTER, spacing:{after:120},
     border:{bottom:{style:BorderStyle.SINGLE,size:8,color:NAVY,space:6}},
-    children:[new TextRun({text:cov.kindTop||"关　于", font:HEAD, size:44, bold:true, color:NAVY})]}),
+    children:[new TextRun({text:cov.kindTop||"关　于", font:FT(HEAD), size:44, bold:true, color:NAVY})]}),
 ];
 titleLines.forEach((line,i)=>coverChildren.push(
   new Paragraph({alignment:AlignmentType.CENTER,
     spacing:{before:i===0?240:80, after:i===titleLines.length-1?120:80},
-    children:[new TextRun({text:line, font:HEAD, size:52, bold:true, color:"1F1F1F"})]})));
+    children:[new TextRun({text:line, font:FT(HEAD), size:52, bold:true, color:"1F1F1F"})]})));
 if(cov.subtitle) coverChildren.push(new Paragraph({alignment:AlignmentType.CENTER, spacing:{after:120},
-  children:[new TextRun({text:cov.subtitle, font:HEAD, size:28, color:GRAY})]}));
+  children:[new TextRun({text:cov.subtitle, font:FT(HEAD), size:28, color:GRAY})]}));
 coverChildren.push(new Paragraph({alignment:AlignmentType.CENTER, spacing:{before:120,after:120},
   border:{top:{style:BorderStyle.SINGLE,size:8,color:NAVY,space:6}},
-  children:[new TextRun({text:cov.kind||"分析报告", font:HEAD, size:40, bold:true, color:NAVY})]}));
+  children:[new TextRun({text:cov.kind||"分析报告", font:FT(HEAD), size:40, bold:true, color:NAVY})]}));
 // 署名块放封面页脚：天然贴页底且不会溢出本页
 const coverFooter=new Footer({children:(cov.meta||[]).map(line=>
   new Paragraph({alignment:AlignmentType.CENTER, spacing:{after:60},
-    children:[new TextRun({text:line, font:BODY, size:21, color:"333333"})]}))});
+    children:[new TextRun({text:line, font:FT(BODY), size:21, color:"333333"})]}))});
 
 const PAGE={size:{width:11906,height:16838}, margin:{top:1440,bottom:1440,left:1800,right:1800}};
 const headerSimple=new Header({children:[new Paragraph({alignment:AlignmentType.RIGHT,
   border:{bottom:{style:BorderStyle.SINGLE,size:4,color:LINE,space:2}},
-  children:[new TextRun({text:cov.runningTitle||cov.title||"", font:BODY, size:16, color:GRAY})]})]});
+  children:[new TextRun({text:cov.runningTitle||cov.title||"", font:FT(BODY), size:16, color:GRAY})]})]});
 const footerPage=new Footer({children:[new Paragraph({alignment:AlignmentType.CENTER,
-  children:[ new TextRun({text:"第 ",font:BODY,size:18,color:GRAY}),
-    new TextRun({children:[PageNumber.CURRENT],font:BODY,size:18,color:GRAY}),
-    new TextRun({text:" 页 / 共 ",font:BODY,size:18,color:GRAY}),
-    new TextRun({children:[PageNumber.TOTAL_PAGES],font:BODY,size:18,color:GRAY}),
-    new TextRun({text:" 页",font:BODY,size:18,color:GRAY}) ]})]});
+  children:[ new TextRun({text:"第 ",font:FT(BODY),size:18,color:GRAY}),
+    new TextRun({children:[PageNumber.CURRENT],font:FT(BODY),size:18,color:GRAY}),
+    new TextRun({text:" 页 / 共 ",font:FT(BODY),size:18,color:GRAY}),
+    new TextRun({children:[PageNumber.TOTAL_PAGES],font:FT(BODY),size:18,color:GRAY}),
+    new TextRun({text:" 页",font:FT(BODY),size:18,color:GRAY}) ]})]});
 
 const doc=new Document({
-  styles:{ default:{document:{run:{font:BODY,size:24}}},
+  styles:{ default:{document:{run:{font:FT(BODY),size:24}}},
     paragraphStyles:[1,2,3].map(l=>({
       id:`Heading${l}`, name:`Heading ${l}`, basedOn:"Normal", next:"Normal", quickFormat:true,
-      run:{size:{1:32,2:28,3:26}[l], bold:true, font:HEAD},
+      run:{size:{1:32,2:28,3:26}[l], bold:true, font:FT(HEAD)},
       paragraph:{spacing:{before:240,after:120}, outlineLevel:l-1}}))},
   numbering:{config:[{reference:"kf", levels:[{level:0, format:LevelFormat.BULLET, text:"▪",
     alignment:AlignmentType.LEFT, style:{run:{color:NAVY}, paragraph:{indent:{left:560,hanging:280}}}}]}]},

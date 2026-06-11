@@ -59,13 +59,14 @@ def derive_court_level(court_name: str) -> str:
 
 
 def derive_region(court_name: str) -> str:
-    """从法院全称推断省级地域（证券版京沪比较用，可扩展）。"""
+    """从法院全称推断省级地域（全国化；学理实战修复——原版只认京沪，
+    导致全国样本的法院地字段大量为空、地域统计失真）。"""
     if not court_name:
         return ""
-    if court_name.startswith("北京") or "北京市" in court_name:
-        return "北京"
-    if court_name.startswith("上海") or "上海市" in court_name:
-        return "上海"
+    full = normalize_province("", court_name)
+    if full:
+        # 京沪保留简称（历史口径兼容），其余返回规范全称
+        return {"北京市": "北京", "上海市": "上海"}.get(full, full)
     return ""
 
 

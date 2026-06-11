@@ -31,16 +31,47 @@
 2. **取数据**：走 MCP 检索，或走自带数据导入（上节）。
 3. **守纪律**：严格遵守 SKILL 的**反幻觉铁律**（不编案号/案件/裁判内容；引用必带案号+法院+链接）与
    **两个检查点**（关键词确认、检索情况确认——必须停下等人工确认）。
-4. **跑脚本**（纯 Python/Node，任何环境可运行）：
+4. **跑脚本**（纯 Python/Node，任何环境可运行；`<dir>` 为本次研究目录）：
+
+   **通用准备**：`pip install -r requirements.txt && npm install`
+
+   **检索后先过阀门**（两模式通用）：
    ```bash
-   pip install -r requirements.txt && npm install
-   python3 scripts/general/normalize_cases.py <dir>        # 确定性派生
-   python3 scripts/general/run_analytics.py   <dir>        # 统计 + 出图
-   python3 scripts/general/generate_excel.py  <dir> --name "<案件类别>" --date <YYYYMMDD>
-   python3 scripts/build_report_docx.py <dir> "<案件类别>-类案检索报告-<YYYYMMDD>.md"
-   python3 scripts/verify_report.py <dir>                  # 反幻觉收尾自检（必须通过）
+   python3 scripts/general/fold_group_cases.py <dir> --detect --cause "<案由词>"  # 集团案检测
+   python3 scripts/general/fold_group_cases.py <dir> --cause "<案由词>"          # 触发则折叠落盘04
    ```
-   （集团案形态用 `scripts/securities/*` 长表管道，见 SKILL 开关二。）
+
+   **学理模式（散案管道）**：
+   ```bash
+   python3 scripts/general/normalize_cases.py <dir>
+   python3 scripts/general/run_analytics.py   <dir>           # 六维统计+闸门+3图
+   python3 scripts/general/render_region_charts.py <dir>      # 全国地域图+争点×地域热力
+   python3 scripts/general/generate_excel.py  <dir> --name "<主题>" --date <YYYYMMDD>
+   python3 scripts/build_report_docx.py <dir> "<主题>-裁判规则研究报告-<YYYYMMDD>.md"
+   ```
+
+   **集团案形态（阀门触发后改走长表管道）**：
+   ```bash
+   python3 scripts/securities/normalize_secmisrep.py <dir>
+   python3 scripts/securities/run_analytics_secmisrep.py <dir>   # 14问聚合+闸门+3图
+   python3 scripts/general/render_region_charts.py <dir>
+   python3 scripts/securities/generate_excel_secmisrep.py <dir> --name "<类别>" --date <YYYYMMDD>
+   ```
+
+   **实案模式另加**（在上述基础上）：
+   ```bash
+   python3 scripts/common/court_hierarchy.py "<核心法院>"     # 四顺位提议（检查点1确认）
+   python3 scripts/general/tag_tiers.py <dir>                # 顺位标注
+   python3 scripts/check_coverage.py <dir>                   # 覆盖率自检（含顺位覆盖）
+   # 报告命名改为 <案件类别>-类案检索报告-<YYYYMMDD>.md
+   ```
+
+   **收尾自检（两模式必须）**：
+   ```bash
+   python3 scripts/validate_pipeline.py <dir>    # 数据契约校验
+   python3 scripts/download_fulltext.py <dir>    # 原文导出
+   python3 scripts/verify_report.py <dir>        # 反幻觉校验（不过即 FAIL，禁止交付）
+   ```
 5. **写报告**：报告正文（法律说理）由智能体撰写，质量取决于模型能力——建议用强推理模型。
 6. **交付前**必须跑 `scripts/verify_report.py` 通过：它机器校验报告里每个案号都能在数据池中溯源。
 

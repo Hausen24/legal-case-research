@@ -4,6 +4,7 @@ import subprocess
 import sys
 
 import court_hierarchy as ch
+import sys as _s; _s.path.insert(0, "scripts/general")
 
 
 # ── 四顺位法院解析 ──
@@ -73,3 +74,25 @@ def test_guiding_cases_dataset(repo):
     for key in ("裁判要点", "基本案情", "裁判理由"):
         assert rec.get(key), f"最新案例缺 {key}"
     assert rec["url"].startswith("https://www.court.gov.cn/")
+
+
+# ── 集团案自动检测阀门 ──
+def test_group_valve_detect_mode(repo):
+    """demo 池 8 件各异公司 → 阀门应判散案形态（不触发折叠）。"""
+    import subprocess, sys
+    r = subprocess.run([sys.executable, "scripts/general/fold_group_cases.py",
+                        str(repo / "examples" / "demo_证券虚假陈述集团诉讼"),
+                        "--detect", "--cause", "证券虚假陈述"],
+                       cwd=repo, capture_output=True, text=True)
+    assert r.returncode == 0, r.stderr
+    assert "散案形态" in r.stdout
+
+
+def test_group_valve_helpers():
+    import fold_group_cases as fg
+    assert fg.classify({"RefereeResult": "驳回原告的全部诉讼请求。"}) == "驳回"
+    assert fg.classify({"RefereeResult": "赔偿原告投资差额损失1万元；驳回其余请求"}) == "部分支持"
+    # 伪公司名黑名单：法条名不得被当公司
+    c = {"Ascertain": "依据中华人民共和国证券投资基金法的规定，" * 3,
+         "Identified": "贵州长征天成控股股份有限公司存在虚假记载" * 3}
+    assert "长征天成" in fg.body_issuer(c)

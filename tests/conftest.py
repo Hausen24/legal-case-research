@@ -12,6 +12,7 @@ DEMO_SEC = REPO / "examples" / "demo_证券虚假陈述集团诉讼"
 
 # 让测试能直接 import 脚本里的纯函数
 sys.path.insert(0, str(REPO / "scripts"))
+sys.path.insert(0, str(REPO / "scripts" / "general"))
 sys.path.insert(0, str(REPO / "scripts" / "common"))
 
 
