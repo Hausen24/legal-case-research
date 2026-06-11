@@ -77,10 +77,21 @@ def extract_from_report(md: str):
     return cited, urls
 
 
+def _prefix_match(cited_no: str, truth_nos: set) -> bool:
+    """合并系列案号（如 (2020)湘民终111-113、134号）报告中只引首号；
+    若引用案号去掉尾部'号'后是某池内案号的前缀（断点为 - 或 、），视为命中。"""
+    stem = cited_no[:-1] if cited_no.endswith("号") else cited_no
+    for t in truth_nos:
+        if t.startswith(stem) and len(t) > len(stem) and t[len(stem)] in "-、—":
+            return True
+    return False
+
+
 def verify_one(report_path: Path, truth_nos: set, truth_urls: set) -> dict:
     md = report_path.read_text(encoding="utf-8")
     cited, urls = extract_from_report(md)
-    bad_nos = {k: ctx for k, ctx in cited.items() if k not in truth_nos}
+    bad_nos = {k: ctx for k, ctx in cited.items()
+               if k not in truth_nos and not _prefix_match(k, truth_nos)}
     # pkulaw 链接才纳入存在性校验；其他外链（典型案例联网核对等）不强校验。
     pku_urls = {u for u in urls if "pkulaw" in u}
     bad_urls = {u for u in pku_urls if u not in truth_urls}
