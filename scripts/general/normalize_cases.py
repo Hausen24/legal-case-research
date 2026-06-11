@@ -15,7 +15,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "common"))
 from pkulaw_utils import (  # noqa: E402
-    derive_court_level, flatten_court, flatten_leaf, derive_year,
+    derive_court_level, flatten_court, flatten_leaf, derive_year, normalize_province,
 )
 
 
@@ -32,7 +32,7 @@ def normalize_one(case: dict, raw_idx: dict) -> dict:
     norm = {
         "法院全称": court,
         "法院层级": derive_court_level(court),
-        "地域": province,
+        "地域": normalize_province(province, court),
         "裁判年份": derive_year(pick("LastInstanceDate") or ""),
         "案由": flatten_leaf(pick("Category")),
         "案件等级": flatten_leaf(pick("CaseGrade")) or "普通案例",

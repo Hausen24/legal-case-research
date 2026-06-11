@@ -107,6 +107,10 @@ def divergence_gate(group_counts: dict, min_group: int = MIN_GROUP) -> dict:
     """
     if not group_counts:
         return {"report": False, "reason": "无分组数据", "phrasing": ""}
+    if len(group_counts) < 2:
+        only = next(iter(group_counts))
+        return {"report": False, "reason": f"仅单一分组（{only}），无从比较。",
+                "phrasing": f"样本集中于{only}，不存在分组比较的基础。"}
     small = {g: c for g, c in group_counts.items() if c < min_group}
     if small:
         names = "、".join(f"{g}{c}件" for g, c in group_counts.items())

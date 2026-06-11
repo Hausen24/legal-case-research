@@ -122,21 +122,25 @@ for(const [id,obj] of Object.entries(M.footnotes||{})){
 
 // ---- 封面 ----
 const cov=M.cover||{};
+const titleLines = (cov.titleLines && cov.titleLines.length) ? cov.titleLines : [cov.title||""];
 const coverChildren=[
   new Paragraph({alignment:AlignmentType.CENTER, spacing:{after:120},
     border:{bottom:{style:BorderStyle.SINGLE,size:8,color:NAVY,space:6}},
     children:[new TextRun({text:cov.kindTop||"关　于", font:HEAD, size:44, bold:true, color:NAVY})]}),
-  new Paragraph({alignment:AlignmentType.CENTER, spacing:{before:240,after:120},
-    children:[new TextRun({text:cov.title||"", font:HEAD, size:52, bold:true, color:"1F1F1F"})]}),
 ];
+titleLines.forEach((line,i)=>coverChildren.push(
+  new Paragraph({alignment:AlignmentType.CENTER,
+    spacing:{before:i===0?240:80, after:i===titleLines.length-1?120:80},
+    children:[new TextRun({text:line, font:HEAD, size:52, bold:true, color:"1F1F1F"})]})));
 if(cov.subtitle) coverChildren.push(new Paragraph({alignment:AlignmentType.CENTER, spacing:{after:120},
   children:[new TextRun({text:cov.subtitle, font:HEAD, size:28, color:GRAY})]}));
-coverChildren.push(new Paragraph({alignment:AlignmentType.CENTER, spacing:{before:120,after:480},
+coverChildren.push(new Paragraph({alignment:AlignmentType.CENTER, spacing:{before:120,after:120},
   border:{top:{style:BorderStyle.SINGLE,size:8,color:NAVY,space:6}},
   children:[new TextRun({text:cov.kind||"分析报告", font:HEAD, size:40, bold:true, color:NAVY})]}));
-for(const line of (cov.meta||[]))
-  coverChildren.push(new Paragraph({alignment:AlignmentType.CENTER, spacing:{after:60},
-    children:[new TextRun({text:line, font:BODY, size:21, color:"333333"})]}));
+// 署名块放封面页脚：天然贴页底且不会溢出本页
+const coverFooter=new Footer({children:(cov.meta||[]).map(line=>
+  new Paragraph({alignment:AlignmentType.CENTER, spacing:{after:60},
+    children:[new TextRun({text:line, font:BODY, size:21, color:"333333"})]}))});
 
 const PAGE={size:{width:11906,height:16838}, margin:{top:1440,bottom:1440,left:1800,right:1800}};
 const headerSimple=new Header({children:[new Paragraph({alignment:AlignmentType.RIGHT,
@@ -159,7 +163,8 @@ const doc=new Document({
     alignment:AlignmentType.LEFT, style:{run:{color:NAVY}, paragraph:{indent:{left:560,hanging:280}}}}]}]},
   footnotes,
   sections:[
-    { properties:{ type:SectionType.NEXT_PAGE, verticalAlign:VerticalAlign.CENTER, page:PAGE }, children:coverChildren },
+    { properties:{ type:SectionType.NEXT_PAGE, verticalAlign:VerticalAlign.CENTER, page:PAGE },
+      footers:{default:coverFooter}, children:coverChildren },
     { properties:{ type:SectionType.NEXT_PAGE, page:PAGE },
       headers:{default:headerSimple}, footers:{default:footerPage}, children:main }
   ]

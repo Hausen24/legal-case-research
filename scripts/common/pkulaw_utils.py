@@ -118,6 +118,32 @@ def field(case: dict, raw_idx: dict, key: str, default=""):
     return default
 
 
+_PROVINCE_SHORT = {
+    "北京": "北京市", "上海": "上海市", "天津": "天津市", "重庆": "重庆市",
+    "内蒙古": "内蒙古自治区", "广西": "广西壮族自治区", "西藏": "西藏自治区",
+    "宁夏": "宁夏回族自治区", "新疆": "新疆维吾尔自治区",
+}
+_PROVINCE_NAMES = ["河北", "山西", "辽宁", "吉林", "黑龙江", "江苏", "浙江", "安徽",
+                   "福建", "江西", "山东", "河南", "湖北", "湖南", "广东", "海南",
+                   "四川", "贵州", "云南", "陕西", "甘肃", "青海"]
+
+
+def normalize_province(prov: str, court: str = "") -> str:
+    """规范化省级地域。LastInstanceCourt 的短键有时是法院类型（如'金融法院'）而非省份，
+    或为空；此时按法院全称前缀归省（'上海金融法院'→'上海市'）。统计/出图前务必过此函数，
+    否则地域分布会出现'金融法院'这类伪地域。"""
+    if prov and (prov.endswith(("省", "市", "自治区")) and "法院" not in prov):
+        return prov
+    name = court or prov or ""
+    for short, full in _PROVINCE_SHORT.items():
+        if name.startswith(short):
+            return full
+    for p in _PROVINCE_NAMES:
+        if name.startswith(p):
+            return p + "省"
+    return prov if prov and "法院" not in prov else ""
+
+
 def normalize_caseno(s: str) -> str:
     """规范化案号用于比对：统一全角括号、去除所有空白与不可见字符。
     verify_report（反幻觉校验）与 check_coverage（名录核对）共用。"""

@@ -25,29 +25,37 @@ def _cell_text(cell):
         return cell
     return "".join(r.get("t", "") for r in (cell or []))
 
-# 窄首列触发词：序号/编号类，给固定窄宽，其余内容列均分
-_NARROW_FIRST = {"序号", "序", "编号", "编码", "no", "no.", "#", "项次", "排序"}
+def _disp_len(cell):
+    """单元格显示宽度估算（中日韩宽字符计 2，半角计 1）。"""
+    t = _cell_text(cell)
+    return sum(2 if ord(ch) > 0x2E80 else 1 for ch in t)
 
-def col_widths(header):
-    """表头感知的列宽分配：
-    - 序号/编号类首列 → 窄固定列（约 1cm），其余内容列均分；
-    - 标签型首列（如"争议焦点"）→ 适中份额，其余内容列均分；
-    - 末列吸收取整余数，保证合计精确等于正文宽，避免错位。
-    兼容旧调用：传入整数列数时按标签型处理。
+def col_widths(header, rows=None):
+    """内容感知的列宽分配：按各列实际内容的最大显示宽度加权分配，
+    短列（序号/相似度/档位等数值列）自然收窄、长文列拿到更多宽度并允许换行，
+    目标是表格尽可能少占行数。规则：
+    - 每列取 max(表头, 各行单元格) 显示宽度，下限 4、上限 36（超长靠换行消化）；
+    - 按比例分配正文宽；末列吸收取整余数，合计精确等于正文宽。
+    兼容旧调用：传入整数列数时均分。
     """
     if isinstance(header, int):
-        ncol, first_txt = header, ""
-    else:
-        ncol, first_txt = len(header), _cell_text(header[0]).strip().lower()
+        n = header
+        widths = [CONTENT_W // n] * n
+        widths[-1] += CONTENT_W - sum(widths)
+        return widths
+    ncol = len(header)
     if ncol <= 1:
         return [CONTENT_W]
-    if first_txt in _NARROW_FIRST:
-        first = 620                         # ~1.1cm，容纳两位序号
-    else:
-        first = int(CONTENT_W * 0.18)       # 标签型首列
-    rest = (CONTENT_W - first) // (ncol - 1)
-    widths = [first] + [rest] * (ncol - 1)
-    widths[-1] += CONTENT_W - sum(widths)   # 末列吸收余数，精确填满
+    maxlens = []
+    for ci in range(ncol):
+        m = _disp_len(header[ci])
+        for r in (rows or []):
+            if ci < len(r):
+                m = max(m, _disp_len(r[ci]))
+        maxlens.append(min(max(m, 4), 36))
+    total = sum(maxlens)
+    widths = [max(560, int(CONTENT_W * m / total)) for m in maxlens]
+    widths[-1] += CONTENT_W - sum(widths)
     return widths
 
 class FN:
@@ -122,12 +130,19 @@ def parse(md, manifest):
         if m:
             k, v = m.group(1), m.group(2)
             if k in ("报告主题", "标题", "title"):
-                if "——" in v:
-                    cover["title"], cover["subtitle"] = v.split("——", 1)
-                    cover["subtitle"] = "——" + cover["subtitle"]
+                # 封面标题净化：去掉尾部括注（括号仅作行内必要说明，不上封面）
+                v_clean = re.sub(r"[（(][^（）()]*[)）]\s*$", "", v).strip()
+                if "——" in v_clean:
+                    main_t, sub = v_clean.split("——", 1)
+                    cover["subtitle"] = "——" + sub
                 else:
-                    cover["title"] = v
-                cover["runningTitle"] = cover.get("title", v)
+                    main_t = v_clean
+                # 「xx纠纷/案件 + 报告类型」拆两行：类型词单独一行
+                mt = re.match(r"^(.{4,})(类案检索报告|裁判规则研究报告|类案分析报告|研究报告)$",
+                              main_t)
+                cover["titleLines"] = [mt.group(1).strip(), mt.group(2)] if mt else [main_t]
+                cover["title"] = main_t
+                cover["runningTitle"] = main_t
             else:
                 cover["meta"].append(f"{k}：{v}")
         i += 1
@@ -162,7 +177,7 @@ def parse(md, manifest):
                              for c in body[j].strip().strip("|").split("|")])
                 j += 1
             blocks.append({"type": "table", "header": header, "rows": rows,
-                           "widths": col_widths(header)})
+                           "widths": col_widths(header, rows)})
         else:
             blocks.append({"type": "p", "runs": parse_inline(s, fn)})
             j += 1
