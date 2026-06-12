@@ -114,3 +114,33 @@ def test_divergence_in_securities_analytics(repo, demo_sec_copy):
     div = a["分歧地图"]
     assert "重大性" in div, "S01 具有重大性 vs S03 不具重大性 应被检出"
     assert len(div["重大性"]["立场分布"]) >= 2
+
+
+# ── 引文核验层（内容级抽检）──
+def test_quote_check_real_vs_fabricated(demo_dir):
+    import verify_report as V
+    corpus = V.collect_corpus(demo_dir)
+    assert len(corpus) > 1000
+    # demo 池真实裁判说理片段 → 应命中
+    real = V.check_quotes("法院认为“算法推荐使平台对内容传播范围具有控制力与获益”云云", corpus)
+    assert real and real[0][1] in ("精确", "模糊"), real
+    # 伪造"判决原话" → 必须未命中
+    fake = V.check_quotes("法院指出“本案应适用火星法统一裁判原理予以处断”", corpus)
+    assert fake and fake[0][1] == "未命中", fake
+    # 嵌套引号容错：语料含引号时归一化后仍可命中
+    assert V._norm_text('让装睡的"看门人"不敢装睡') == V._norm_text("让装睡的看门人不敢装睡")
+
+
+def test_apply_coding_protects_raw_fields(repo, demo_copy, tmp_path):
+    import json as _json, subprocess, sys as _sys
+    coding = [{"CaseFlag": "（2021）示01民初0001号", "新编码字段": "v",
+               "Identified": "恶意改写"}]
+    cf = tmp_path / "c.json"
+    cf.write_text(_json.dumps(coding, ensure_ascii=False), encoding="utf-8")
+    r = subprocess.run([_sys.executable, "scripts/general/apply_coding.py",
+                        str(demo_copy), str(cf)], cwd=repo, capture_output=True, text=True)
+    assert r.returncode == 0, r.stderr
+    recs = _json.loads((demo_copy / "05_enriched_cases.json").read_text(encoding="utf-8"))
+    rec = next(x for x in recs if x.get("CaseFlag") == "（2021）示01民初0001号")
+    assert rec["新编码字段"] == "v"
+    assert "恶意改写" not in (rec.get("Identified") or "")

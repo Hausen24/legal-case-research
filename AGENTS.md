@@ -68,11 +68,17 @@
    # 报告命名改为 <案件类别>-类案检索报告-<YYYYMMDD>.md
    ```
 
+   **编码与质检（两模式必须）**：
+   ```bash
+   python3 scripts/general/apply_coding.py <dir> 编码.json   # AI 产纯 JSON 编码→标准化落盘 05
+   python3 scripts/general/spot_check_coding.py <dir>        # 抽检复核单（随检查点交用户确认）
+   python3 scripts/validate_pipeline.py <dir>                # 数据契约校验
+   ```
+
    **收尾自检（两模式必须）**：
    ```bash
-   python3 scripts/validate_pipeline.py <dir>    # 数据契约校验
    python3 scripts/download_fulltext.py <dir>    # 原文导出
-   python3 scripts/verify_report.py <dir>        # 反幻觉校验（不过即 FAIL，禁止交付）
+   python3 scripts/verify_report.py <dir>        # 引用溯源+引文核验（案号 FAIL 级；--strict-quotes 引文也 FAIL）
    ```
 5. **写报告**：报告正文（法律说理）由智能体撰写，质量取决于模型能力——建议用强推理模型。
 6. **交付前**必须跑 `scripts/verify_report.py` 通过：它机器校验报告里每个案号都能在数据池中溯源。
@@ -85,9 +91,11 @@
 | **读文件 + 跑命令（自带数据模式）** | 上述工具 + Continue、Roo Code、Aider、OpenAI Codex CLI、Gemini CLI、GitHub Copilot 智能体 | 不走 MCP，用 `import_cases.py` 导入自备数据后全链路产出 |
 | **能写并运行代码（半自动）** | ChatGPT（代码解释器）等 | 你贴入数据，模型按 SKILL 编码、调脚本，产出报告/Excel（检索与 MCP 部分需你在外部完成） |
 
-> 说明：脚本层（normalize / run_analytics / generate_excel / build_report_docx / verify_report）是**纯确定性
-> 程序**，`python3`/`node` 即可运行，不依赖任何特定 AI。AI 负责的是 SKILL 里的**判断性**部分
-> （争点编码、法律说理、检索策略）——这部分换任何强模型都能做，只是说理深度随模型而异。
+> **兼容性的诚实说明**：上表是**架构层面的设计目标**——脚本层是纯确定性程序（`python3`/`node`
+> 即可运行并被 CI 验证），任何环境都可复现；但**判断层**（争点编码、法律说理）的指令遵循质量
+> 随模型而异，目前仅在 Claude（Opus 级）上经过完整实战验证，其他 Agent 的端到端执行
+> **尚未系统评测**（跨模型 eval 计划见 ROADMAP）。换用其他模型时，请格外依赖三道机器校验
+> （validate / coverage / verify）与编码抽检（spot_check_coding）兜底。
 
 ## 反幻觉是硬约束
 

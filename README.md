@@ -4,7 +4,7 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 ![Python 3.11+](https://img.shields.io/badge/Python-3.11+-blue.svg)
 
-> **A reproducible legal case-research workflow** that turns a fact pattern + search brief into a citation-checked, chart-rich Word report and an Excel case list — with sample-size-adaptive statistics and machine-verified anti-hallucination. Works with the Peking University Law (北大法宝) MCP **or your own case data**, and with **any** capable AI agent (not only Claude). See [AGENTS.md](AGENTS.md).
+> **A reproducible legal case-research workflow** that turns a fact pattern + search brief into a citation-checked, chart-rich Word report and an Excel case list — with sample-size-adaptive statistics and machine-verified citation traceability. Works with the Peking University Law (北大法宝) MCP **or your own case data**, and with **any** capable AI agent (not only Claude). See [AGENTS.md](AGENTS.md).
 
 把一段案情 + 检索要求，自动跑成「**裁判规则研究报告 / 类案检索报告（Word）+ 类案检索清单（Excel）**」。数据源默认北大法宝 MCP，**也支持自带数据**（无订阅亦可，见 [AGENTS.md](AGENTS.md) 与 [输入数据契约](examples/输入数据契约.md)）。
 
@@ -163,17 +163,20 @@ research/<主题>_<日期>/output/
 | 样本量自适应闸门 | 小样本禁统计推断/分组比较，防伪差异 | `scripts/common/stats_guard.py` |
 | 分歧地图 | 同争点对立立场+代表案对，一等产出 | `scripts/common/divergence.py` |
 | 证据线 | 深挖案证据对照表（争点｜原告举证｜被告举证｜法院采信）+ 控辩证据准备清单 | `templates/report-neutral.md` §1 六件套 |
+| 编码抽检 | 编码结论 vs 原文摘录对照复核单（用户确认留痕） | `scripts/general/spot_check_coding.py` |
+| 编码落盘 | AI 产纯 JSON 编码→合并入 05（受保护字段拒改写） | `scripts/general/apply_coding.py` |
 | 报告范式 | 五维四段（理论展开+主流规则+例外反向+评析演进）、制度变迁总览、学理争议对照 | `templates/report-*.md` |
 | 统一图表 | 冷蓝渐变设计系统：概览/争点频次/年度演进/全国地域/争点×地域热力 | `scripts/chart_theme.py` + `render_region_charts.py` |
-| 反幻觉校验 | 报告案号逐一溯源样本池（含系列合并案号前缀匹配），不过即 FAIL | `scripts/verify_report.py` |
+| 引用溯源+引文核验 | 案号逐一溯源样本池（FAIL 级）＋直接引文在判决语料中匹配（伪造原话即标出） | `scripts/verify_report.py` |
 | 覆盖率自检 | 关键词命中矩阵/名录缺口/顺位覆盖，量化"检索有多全" | `scripts/check_coverage.py` |
 | 契约校验 | 管道各阶段字段类型/枚举/拼写一致性当场报错 | `scripts/validate_pipeline.py` |
 | Word 渲染 | 封面两行标题/署名页脚/内容感知列宽/链接转脚注/西文 Times New Roman | `scripts/build_report_docx.py` + `render_report.mjs` |
 
 ## 可靠性与可复现
 
-- **反幻觉是被机器证明的。** `scripts/verify_report.py` 扫描最终报告每个案号，逐一比对样本池，引用了样本池外的案号即报错、非零退出——把"承诺不编案号"升级为"机器证明每个引用都可溯源"。收尾自检与 CI 都跑它。
-- **检索覆盖率是被量化的。** `scripts/check_coverage.py` 输出关键词命中矩阵（含边际贡献）、去重审计与典型案例名录缺口表——把"完整性不可保证"变成可呈报的量化缺口，亦可作为符合最高法类案检索指导意见（法发〔2020〕24号）第八条"方法/结果"要素的检索过程底稿。
+- **引用可溯源性是被机器证明的（边界如实声明）。** `scripts/verify_report.py` 两层校验：①案号溯源——报告引用的每个案号逐一比对样本池，池外案号即 FAIL；②引文核验——报告中引号内的直接引文在判决全文语料中归一化匹配（嵌套引号容错），逐字引用应当命中、伪造"判决原话"会被标出，未命中清单提示人工抽核（`--strict-quotes` 可升级为 FAIL）。**诚实边界**：以上证明的是引用与引文的可溯源性，**不能证明全部转述内容无误**——转述质量由编码抽检（下条）与两个人工检查点把关。
+- **编码质量有抽检机制。** 焦点立场/抗辩采纳等判断性编码完成后，`spot_check_coding.py` 随机抽取 ≥15%（至少 3 件）生成"编码结论 vs 原文摘录"对照复核单，随检查点交用户逐件确认留痕——内容分析法编码者信度的工程化替代（同案双跑 Kappa 见 ROADMAP）。
+- **检索覆盖率是被量化的。** `scripts/check_coverage.py` 输出关键词命中矩阵（含边际贡献）、去重审计与典型案例名录缺口表——把"完整性不可保证"变成可呈报的量化缺口，亦可作为符合最高法类案检索指导意见（法发〔2020〕24号）第八条"方法/结果"要素的检索过程底稿。**量化不等于消除**：数据源单查询 10 条上限是结构性约束，缺口只能靠关键词扩展轮替、名录核对补检与自带数据混合来缓解，无法根除——使用者应据覆盖率报告自行判断样本是否足以支撑结论。
 - **数据契约是被校验的。** `scripts/validate_pipeline.py` 对管道各阶段做字段类型/枚举/争点名拼写一致性校验，AI 编码的漏填错键当场报错，而不是等成品出现空列。
 - **裁判分歧是一等产出。** 同一争点对立立场并存的争点清单、各立场代表案对与地域观察，自动进入分析数据与 Excel「裁判分歧清单」；是否构成地域倾向结论仍由样本量闸门裁定。
 - **自动化测试 + CI。** `tests/` 下 pytest 覆盖公共派生、样本量闸门（含"小样本不作分歧推断"回归保护）、Excel 实质列非空、自带数据导入、反幻觉校验正反用例；GitHub Actions 每次推送/PR 跑全套测试 + 演示管道冒烟 + 反幻觉校验（见徽章）。
