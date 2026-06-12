@@ -35,7 +35,7 @@ from pathlib import Path
 BASE = "https://www.court.gov.cn"
 LIST_FIRST = "/shenpan/gengduo/77.html"
 UA = ("Mozilla/5.0 (compatible; legal-case-research/1.0; "
-      "+https://github.com/Hausen24/legal-case-research)")
+      "+https://github.com/silvrblt/legal-case-research)")
 OUT = Path(__file__).resolve().parent.parent / "data" / "guiding_cases"
 DELAY = 1.2
 

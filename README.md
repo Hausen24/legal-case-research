@@ -1,6 +1,6 @@
 # 类案检索研究工作流（Legal Case-Research Workflow）
 
-[![CI](https://github.com/Hausen24/legal-case-research/actions/workflows/ci.yml/badge.svg)](https://github.com/Hausen24/legal-case-research/actions/workflows/ci.yml)
+[![CI](https://github.com/silvrblt/legal-case-research/actions/workflows/ci.yml/badge.svg)](https://github.com/silvrblt/legal-case-research/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 ![Python 3.11+](https://img.shields.io/badge/Python-3.11+-blue.svg)
 

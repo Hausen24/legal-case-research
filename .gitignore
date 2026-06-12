@@ -26,3 +26,4 @@ venv/
 *.swp
 .idea/
 .vscode/
+/推介文章-*.docx
