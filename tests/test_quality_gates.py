@@ -164,3 +164,31 @@ def test_demo_reports_pass_strict_quotes(repo):
                         "examples/demo_证券虚假陈述集团诉讼", "--strict-quotes"],
                        cwd=repo, capture_output=True, text=True)
     assert r.returncode == 0, r.stdout
+
+
+def test_term_mark_sentinel(repo):
+    """「」豁免通道哨兵：裁判语体/超长片段被标出，正常短术语与命中语料者放行。"""
+    import sys as _sys
+    _sys.path.insert(0, str(repo / "scripts"))
+    from verify_report import check_term_marks, _norm_text
+    corpus = _norm_text("被告平台对侵权视频的算法推荐构成应知，应当承担连带赔偿责任。")
+    md = ("本院观点为「本院认为，被告的行为构成侵权，应当承担赔偿责任」；"
+          "术语如「应当参照」「重大事件＋价量敏感」不应触发；"
+          "超长归纳「平台经算法推荐机制传播用户上传的侵权影视切条内容」应触发；"
+          "命中语料的「被告平台对侵权视频的算法推荐构成应知」自动豁免。")
+    flagged = check_term_marks(md, corpus)
+    assert any("本院认为" in t for t in flagged)
+    assert any("影视切条" in t for t in flagged)
+    assert not any(t in ("应当参照", "重大事件＋价量敏感") for t in flagged)
+    assert not any("构成应知" in t for t in flagged)
+    assert len(flagged) == 2, flagged
+
+
+def test_demo_reports_no_sentinel_warnings(repo):
+    """demo 报告须无「」哨兵警示——示范文本必须自身合规。"""
+    import subprocess, sys as _sys
+    for d in ("examples/demo_算法推荐短视频侵权", "examples/demo_证券虚假陈述集团诉讼"):
+        r = subprocess.run([_sys.executable, "scripts/verify_report.py", d, "--strict-quotes"],
+                           cwd=repo, capture_output=True, text=True)
+        assert r.returncode == 0, r.stdout
+        assert "「」哨兵" not in r.stdout, r.stdout
