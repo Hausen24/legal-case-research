@@ -82,7 +82,7 @@ def extract_from_report(md: str):
 # 直接引文样式：中文引号内 10–120 字片段
 # 方向性引号（“”「」）开闭可辨，允许较长引文；英文双引号开闭同形，
 # 只取不跨行、不含 markdown 标记的短引文，避免把"引号外区间"误当引文。
-QUOTE_DIRECTIONAL = re.compile(r'[\u201c\u300c]([^\u201c\u201d\u300c\u300d]{6,120})[\u201d\u300d]')
+QUOTE_DIRECTIONAL = re.compile(r'[\u201c]([^\u201c\u201d]{6,120})[\u201d]')  # 仅弯引号=逐字引用；「」为术语标记不核验
 QUOTE_ASCII = re.compile(r'"([^"\n*|]{4,60})"')
 
 
@@ -125,8 +125,9 @@ def collect_corpus(research_dir: Path) -> str:
 
 def check_quotes(md: str, corpus_norm: str) -> list:
     """对报告中的直接引文逐条核验。返回 [(引文, 判定)]；判定∈{精确, 模糊, 未命中}。
-    模糊判定：引文切为 ~8 字块，全部块（容忍缺 1 块）在语料中存在——真实引文的
-    连续片段必然命中，LLM 改写/拼接的伪引文会丢块。"""
+    模糊判定：引文切为 ~8 字块，容忍缺 1 块（约 2/3 以上连续片段命中即过）。诚实边界：
+    “模糊”≠逐字——放行省略截引/轻度改写但保留大段原文的引文，只保证主体片段
+    来自原文；LLM 整段编造/拼接的伪引文会丢块而被标出。"""
     results = []
     seen = set()
     matches = list(QUOTE_DIRECTIONAL.finditer(md)) + list(QUOTE_ASCII.finditer(md))
@@ -186,8 +187,10 @@ def main():
         print("⚠️  样本池（03/04/05）中未读到任何 CaseFlag，无法校验——请确认检索数据已落盘。")
 
     out_dir = research_dir / "output"
-    if len(sys.argv) > 2:
-        reports = [out_dir / a for a in sys.argv[2:]]
+    # 显式文件名参数须过滤掉 --strict-quotes 等旗标，否则旗标被当文件名 → 永远 FAIL
+    name_args = [a for a in sys.argv[2:] if not a.startswith("--")]
+    if name_args:
+        reports = [out_dir / a for a in name_args]
     else:
         # 实案=类案检索报告 / 学理=裁判规则研究报告；兼容旧名 类案分析报告*.md
         reports = sorted(set(out_dir.glob("*类案检索报告*.md"))
@@ -228,8 +231,8 @@ def main():
             print(f"   引文核验：直接引文 {len(quotes)} 条 → 精确 {n_exact}、模糊 {n_fuzzy}、"
                   f"未命中 {len(misses)}")
             if misses:
-                print(f"   {'❌' if strict_quotes else '⚠️ '} 未在判决语料中找到的引文"
-                      f"（可能为法条/司法解释原文，请人工核对来源）：")
+                print(f"   {'❌' if strict_quotes else '⚠️ '} 未逐字命中的引文"
+                      f"（可能为转述归纳或法条原文——逐字引用判决原文者应当命中，请人工抽核）：")
                 for q in misses[:8]:
                     print(f"     « {q[:50]}{'…' if len(q) > 50 else ''} »")
                 if strict_quotes:

@@ -144,3 +144,23 @@ def test_apply_coding_protects_raw_fields(repo, demo_copy, tmp_path):
     rec = next(x for x in recs if x.get("CaseFlag") == "（2021）示01民初0001号")
     assert rec["新编码字段"] == "v"
     assert "恶意改写" not in (rec.get("Identified") or "")
+
+
+def test_verify_flag_not_treated_as_filename(repo):
+    """回归：显式文件名 + --strict-quotes 组合，旗标不得被当文件名（曾致永远 FAIL）。"""
+    import subprocess, sys as _sys
+    r = subprocess.run([_sys.executable, "scripts/verify_report.py",
+                        "examples/demo_证券虚假陈述集团诉讼",
+                        "证券虚假陈述-裁判规则研究报告-20260609.md", "--strict-quotes"],
+                       cwd=repo, capture_output=True, text=True)
+    assert "找不到" not in r.stdout, r.stdout
+    assert r.returncode == 0, r.stdout
+
+
+def test_demo_reports_pass_strict_quotes(repo):
+    """demo 报告引用合成判决原文，必须能过 strict（引文层的回归保护）。"""
+    import subprocess, sys as _sys
+    r = subprocess.run([_sys.executable, "scripts/verify_report.py",
+                        "examples/demo_证券虚假陈述集团诉讼", "--strict-quotes"],
+                       cwd=repo, capture_output=True, text=True)
+    assert r.returncode == 0, r.stdout

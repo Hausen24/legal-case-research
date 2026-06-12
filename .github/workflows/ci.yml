@@ -35,7 +35,7 @@ jobs:
           python scripts/general/generate_excel.py "examples/demo_算法推荐短视频侵权" --name "短视频侵权案件" --date 20260607
           python scripts/validate_pipeline.py "examples/demo_算法推荐短视频侵权"
           python scripts/check_coverage.py "examples/demo_算法推荐短视频侵权"
-          python scripts/verify_report.py "examples/demo_算法推荐短视频侵权"
+          python scripts/verify_report.py "examples/demo_算法推荐短视频侵权" --strict-quotes
 
       - name: Smoke B — group-case (securities) demo
         run: |
@@ -46,7 +46,7 @@ jobs:
           python scripts/build_report_docx.py "examples/demo_证券虚假陈述集团诉讼" "证券虚假陈述案件-类案检索报告-20260609.md" || true
           python scripts/validate_pipeline.py "examples/demo_证券虚假陈述集团诉讼"
           python scripts/check_coverage.py "examples/demo_证券虚假陈述集团诉讼"
-          python scripts/verify_report.py "examples/demo_证券虚假陈述集团诉讼"
+          python scripts/verify_report.py "examples/demo_证券虚假陈述集团诉讼" --strict-quotes
 
       - name: Smoke C — bring-your-own-data import
         run: python scripts/general/import_cases.py /tmp/byod --json examples/byod_sample.json
