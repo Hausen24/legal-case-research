@@ -43,6 +43,7 @@ jobs:
           python scripts/securities/normalize_secmisrep.py "examples/demo_证券虚假陈述集团诉讼"
           python scripts/securities/run_analytics_secmisrep.py "examples/demo_证券虚假陈述集团诉讼"
           python scripts/securities/generate_excel_secmisrep.py "examples/demo_证券虚假陈述集团诉讼" --name "证券虚假陈述案件" --date 20260609
+          python scripts/build_report_docx.py "examples/demo_证券虚假陈述集团诉讼" "证券虚假陈述案件-类案检索报告-20260609.md" || true
           python scripts/validate_pipeline.py "examples/demo_证券虚假陈述集团诉讼"
           python scripts/check_coverage.py "examples/demo_证券虚假陈述集团诉讼"
           python scripts/verify_report.py "examples/demo_证券虚假陈述集团诉讼"
