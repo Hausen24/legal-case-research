@@ -192,3 +192,31 @@ def test_demo_reports_no_sentinel_warnings(repo):
                            cwd=repo, capture_output=True, text=True)
         assert r.returncode == 0, r.stdout
         assert "「」哨兵" not in r.stdout, r.stdout
+
+
+def test_recency_structure():
+    """时效结构：近三年/逾三年切分正确，指导性案例豁免不计入升降（第四条收尾句）。
+    用固定基准日，抗日期漂移。"""
+    from datetime import date
+    from check_coverage import _recency
+    anchor = date(2026, 6, 13)            # 近三年界 = 2023-06-13
+    raw = [
+        {"CaseFlag": "（2025）京01民终1号", "LastInstanceDate": "2025.03.10", "Title": "近案A"},
+        {"CaseFlag": "（2023）京01民终2号", "LastInstanceDate": "2023.09.01", "Title": "界内B"},
+        {"CaseFlag": "（2020）京01民终3号", "LastInstanceDate": "2020.05.20", "Title": "旧案C"},
+        {"CaseFlag": "（2019）京01民初4号", "LastInstanceDate": "2019.01.01", "Title": "旧案D"},
+        {"CaseFlag": "指导案例99号", "LastInstanceDate": "2015.01.01",
+         "CaseClassName": "指导性案例", "Title": "老指导案例E"},
+        {"CaseFlag": "（2024）京01民终6号", "LastInstanceDate": "", "Title": "无日期F"},
+    ]
+    r = _recency(raw, anchor)
+    assert r["近三年界"] == "2023-06-13"
+    assert r["近三年"]["件数"] == 2            # A, B
+    assert r["逾三年"]["件数"] == 2            # C, D（不含指导案例E）
+    assert r["指导案例豁免"] == 1              # E 豁免，不进升降
+    assert r["未知日期"] == 1                  # F
+    old_nos = {it["案号"] for it in r["逾三年"]["清单"]}
+    assert "指导案例99号" not in old_nos       # 豁免对象不得出现在降级清单
+    assert "（2020）京01民终3号" in old_nos
+    # 占比按非指导性案例中有日期者（A B C D = 4）计算：近三年 2/4 = 50%
+    assert r["近三年"]["占比"] == "50%"
