@@ -220,3 +220,38 @@ def test_recency_structure():
     assert "（2020）京01民终3号" in old_nos
     # 占比按非指导性案例中有日期者（A B C D = 4）计算：近三年 2/4 = 50%
     assert r["近三年"]["占比"] == "50%"
+
+
+def test_recency_tier_subset(demo_sec_copy):
+    """实案模式：时效结构.顺位内 只统计命中四顺位目标法院的案件子集。"""
+    import json
+    import subprocess
+    import sys as _sys
+    from pathlib import Path
+    (demo_sec_copy / "顺位法院.json").write_text(
+        json.dumps({"顺位3_本省高院": ["上海市高级人民法院"],
+                    "顺位4_上一级及本院": ["上海金融法院"]}, ensure_ascii=False),
+        encoding="utf-8")
+    REPO = Path(__file__).resolve().parent.parent
+    r = subprocess.run([_sys.executable, "scripts/check_coverage.py", str(demo_sec_copy)],
+                       cwd=REPO, capture_output=True, text=True)
+    assert r.returncode == 0, r.stderr
+    cov = json.loads((demo_sec_copy / "07_coverage.json").read_text(encoding="utf-8"))
+    sub = cov["时效结构"]["顺位内"]
+    assert sub["样本"] == 5          # 上海金融4 + 上海高院1；北京2、最高1 不入这两顺位
+    assert (sub["近三年"]["件数"] + sub["逾三年"]["件数"]
+            + sub["未知日期"] + sub["指导案例豁免"]) == sub["样本"]
+
+
+def test_recency_no_tier_subset_without_file(demo_sec_copy):
+    """非实案模式（无 顺位法院.json）：不产出 顺位内 子集。"""
+    import json
+    import subprocess
+    import sys as _sys
+    from pathlib import Path
+    REPO = Path(__file__).resolve().parent.parent
+    r = subprocess.run([_sys.executable, "scripts/check_coverage.py", str(demo_sec_copy)],
+                       cwd=REPO, capture_output=True, text=True)
+    assert r.returncode == 0, r.stderr
+    cov = json.loads((demo_sec_copy / "07_coverage.json").read_text(encoding="utf-8"))
+    assert "顺位内" not in cov["时效结构"]
